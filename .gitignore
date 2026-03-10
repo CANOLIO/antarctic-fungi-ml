@@ -1,0 +1,32 @@
+# -----------------------------
+# Entornos Virtuales de Python
+# -----------------------------
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# -----------------------------
+# Archivos del Sistema (macOS)
+# -----------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# -----------------------------
+# Datos y Modelos (Muy pesados para GitHub)
+# -----------------------------
+# Ignoramos el contenido de estas carpetas, pero no la carpeta en sí
+data/raw/*.fasta
+data/new_genomes/*.fasta
+data/processed/*.csv
+results/models/*.pkl
+results/figures/*.png
+results/validation/*.txt
+top15_bioprospecting_report.csv
+
+# -----------------------------
+# Herramientas de Desarrollo (VS Code)
+# -----------------------------
+.vscode/
