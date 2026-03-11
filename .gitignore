@@ -1,32 +1,38 @@
-# -----------------------------
-# Entornos Virtuales de Python
-# -----------------------------
+# ── Entorno virtual ────────────────────────────────────────────────────────────
 .venv/
 venv/
 env/
 __pycache__/
 *.pyc
-
-# -----------------------------
-# Archivos del Sistema (macOS)
-# -----------------------------
+*.pyo
 .DS_Store
 .AppleDouble
 .LSOverride
-
-# -----------------------------
-# Datos y Modelos (Muy pesados para GitHub)
-# -----------------------------
-# Ignoramos el contenido de estas carpetas, pero no la carpeta en sí
-data/raw/*.fasta
-data/new_genomes/*.fasta
-data/processed/*.csv
-results/models/*.pkl
-results/figures/*.png
-results/validation/*.txt
-top15_bioprospecting_report.csv
-
-# -----------------------------
-# Herramientas de Desarrollo (VS Code)
-# -----------------------------
 .vscode/
+*.egg-info/
+dist/
+build/
+
+# ── DATOS: nunca al repositorio público ───────────────────────────────────────
+data/raw/
+data/processed/
+data/reference_panel/
+data/new_genomes/
+
+# ── MODELO ENTRENADO: activo comercial ────────────────────────────────────────
+results/models/*.pkl
+results/models/threshold.txt
+results/models/feature_columns.txt
+
+# ── OUTPUTS DE CLIENTES: privacidad ───────────────────────────────────────────
+results/figures/
+results/validation/
+top15_bioprospecting_report.csv
+results/top15_candidates_raw.csv
+
+# ── LOGS ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── CONFIGURACIÓN PRIVADA: lista de taxones de entrenamiento ──────────────────
+config/
