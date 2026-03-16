@@ -7,7 +7,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # ─── RUTAS ────────────────────────────────────────────────────────────────────
-CONFIG_FILE = os.path.join("config", "taxa_list_example.json")
+CONFIG_FILE = os.path.join("config", "taxa_list.json")
 RAW_DIR     = os.path.join("data", "raw", "industrial_enzymes")
 LOG_FILE    = os.path.join(RAW_DIR, "_descarga_completada.log")
 os.makedirs(RAW_DIR, exist_ok=True)
