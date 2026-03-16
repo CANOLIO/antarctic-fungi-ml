@@ -1,38 +1,65 @@
-# ── Entorno virtual ────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════
+#  PsychroScan .gitignore
+#  Rule: code + example config = public. Everything else = private.
+# ══════════════════════════════════════════════════════════════════════
+
+# ── Python ────────────────────────────────────────────────────────────
 .venv/
 venv/
 env/
 __pycache__/
 *.pyc
 *.pyo
-.DS_Store
-.AppleDouble
-.LSOverride
-.vscode/
+*.pyd
+*.so
 *.egg-info/
 dist/
 build/
 
-# ── DATOS: nunca al repositorio público ───────────────────────────────────────
+# ── macOS ─────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── IDE ───────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── DATA (large files, reproducible from scripts) ─────────────────────
 data/raw/
 data/processed/
 data/reference_panel/
 data/new_genomes/
+# Keep data/Done/ excluded too
+data/Done/
 
-# ── MODELO ENTRENADO: activo comercial ────────────────────────────────────────
-results/models/*.pkl
-results/models/threshold.txt
-results/models/feature_columns.txt
+# ── PRIVATE CONFIG (full taxon list = IP) ─────────────────────────────
+# taxa_list_example.json IS tracked — reviewers use it to reproduce
+config/taxa_list.json
 
-# ── OUTPUTS DE CLIENTES: privacidad ───────────────────────────────────────────
+# ── TRAINED MODEL (commercial asset) ──────────────────────────────────
+results/models/
+
+# ── UNPUBLISHED RESULTS (embargo until paper acceptance) ──────────────
+# figures, benchmark outputs, supplementary — released on acceptance
 results/figures/
+results/benchmark/
 results/validation/
-top15_bioprospecting_report.csv
+results/supplementary/
 results/top15_candidates_raw.csv
+results/top15_bioprospecting_report.csv
+top15_bioprospecting_report.csv
 
-# ── LOGS ──────────────────────────────────────────────────────────────────────
+# ── LOGS ──────────────────────────────────────────────────────────────
 *.log
 logs/
 
-# ── CONFIGURACIÓN PRIVADA: lista de taxones de entrenamiento ──────────────────
-config/
+# ── WHAT IS TRACKED (public) ─────────────────────────────────────────
+# src/pipeline/   — all scripts
+# src/utils/      — helper scripts
+# src/report.py   — executive summary generator
+# config/taxa_list_example.json
+# examples/figures/     — selected paper figures (ROC, LOOO-CV, etc.)
+# examples/dendrograms/ — dendrogram PNGs
+# examples/benchmark/   — Fig4 composite
+# README.md, .gitignore, requirements.txt, LICENSE, REPORT.md

@@ -1,0 +1,31 @@
+{
+  "_comment": "PsychroScan example taxa list — 10 psychrophiles + 10 mesophiles.",
+  "_usage": "Copy to config/taxa_list.json and expand with your curated taxon IDs.",
+  "_format": "taxon_id: NCBI/UniProt taxonomy ID. T_opt_C: documented optimal growth temperature.",
+
+  "psychrophiles": [
+    {"taxon_id": "314265",  "name": "Colwellia_psychrerythraea",       "T_opt_C": 4,   "source": "Arctic marine sediment"},
+    {"taxon_id": "259536",  "name": "Pseudoalteromonas_haloplanktis",  "T_opt_C": 4,   "source": "Antarctic seawater"},
+    {"taxon_id": "357804",  "name": "Psychromonas_ingrahamii",         "T_opt_C": -12, "source": "Arctic sea ice"},
+    {"taxon_id": "1120940", "name": "Psychrobacter_arcticus",          "T_opt_C": 4,   "source": "Siberian permafrost"},
+    {"taxon_id": "335284",  "name": "Psychrobacter_cryohalolentis",    "T_opt_C": 4,   "source": "Siberian permafrost"},
+    {"taxon_id": "357276",  "name": "Shewanella_frigidimarina",        "T_opt_C": 10,  "source": "Antarctic seawater"},
+    {"taxon_id": "105987",  "name": "Glaciozyma_antarctica",           "T_opt_C": 12,  "source": "Antarctic sea ice"},
+    {"taxon_id": "5278",    "name": "Leucosporidium_scottii",          "T_opt_C": 10,  "source": "Antarctic soil"},
+    {"taxon_id": "696254",  "name": "Mrakia_blollopis",                "T_opt_C": 10,  "source": "Antarctic soil"},
+    {"taxon_id": "1760",    "name": "Rhodococcus_erythropolis",        "T_opt_C": 10,  "source": "Arctic soil"}
+  ],
+
+  "mesophiles": [
+    {"taxon_id": "4932",   "name": "Saccharomyces_cerevisiae", "T_opt_C": 30, "source": "Laboratory strain"},
+    {"taxon_id": "5061",   "name": "Aspergillus_niger",        "T_opt_C": 35, "source": "Industrial strain"},
+    {"taxon_id": "5141",   "name": "Neurospora_crassa",        "T_opt_C": 30, "source": "Laboratory strain"},
+    {"taxon_id": "1423",   "name": "Bacillus_subtilis",        "T_opt_C": 37, "source": "Laboratory strain"},
+    {"taxon_id": "83333",  "name": "Escherichia_coli_K12",     "T_opt_C": 37, "source": "Laboratory strain"},
+    {"taxon_id": "272558", "name": "Pseudomonas_aeruginosa",   "T_opt_C": 37, "source": "Clinical isolate"},
+    {"taxon_id": "1280",   "name": "Staphylococcus_aureus",    "T_opt_C": 37, "source": "Clinical isolate"},
+    {"taxon_id": "51453",  "name": "Trichoderma_reesei",       "T_opt_C": 28, "source": "Industrial strain"},
+    {"taxon_id": "5476",   "name": "Candida_albicans",         "T_opt_C": 37, "source": "Human pathogen"},
+    {"taxon_id": "40559",  "name": "Botrytis_cinerea",         "T_opt_C": 20, "source": "Plant pathogen"}
+  ]
+}

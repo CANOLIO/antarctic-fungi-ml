@@ -1,16 +1,3 @@
-"""
-PsychroScan — 09_predict_new_genome.py  (v3)
-=============================================
-CAMBIOS RESPECTO A v2:
-  - BUGFIX: build_context_dendrogram — KeyError 'Thermal_Class'.
-    El groupby().agg() con columnas mixtas (numéricas + categórica) fallaba
-    porque 'Thermal_Class' no es una feature numérica pero estaba en el groupby.
-    Solución: extraer thermal_classes ANTES del groupby, usando un dict
-    separado organism → clase, en lugar de intentar aggregarla con mean().
-  - Dendrograma: colores de etiquetas ahora se aplican correctamente post-render.
-  - Sin otros cambios de lógica.
-"""
-
 import os
 import sys
 import time
@@ -203,9 +190,9 @@ def build_context_dendrogram(X_feat, organism_name, panel_df, output_path):
     n_orgs = len(combined_labels)
     fig, ax = plt.subplots(figsize=(13, max(12, n_orgs * 0.45)))
     ax.set_title(
-        f"Posicionamiento Proteómico: {organism_name.upper()} vs Base de Referencia",
+        f"Proteome-level Positioning: {organism_name.upper()} vs Reference Panel",
         fontsize=13, fontweight='bold', pad=12)
-    ax.set_xlabel("Distancia Bioquímica (Convergencia Adaptativa)", fontsize=10)
+    ax.set_xlabel("Biochemical Distance (Adaptive Convergence)", fontsize=10)
 
     hierarchy.dendrogram(
         Z, labels=combined_labels, orientation='left',
@@ -225,9 +212,9 @@ def build_context_dendrogram(X_feat, organism_name, panel_df, output_path):
             tick.set_fontsize(10)
 
     ax.legend(handles=[
-        Line2D([0],[0], color='#4a90d9', lw=3, label='Psicrófilo / psicrotrofo'),
-        Line2D([0],[0], color='#e07b54', lw=3, label='Mesófilo'),
-        Line2D([0],[0], color='#2ecc71', lw=3, label=f'Candidato: {organism_name}'),
+        Line2D([0],[0], color='#4a90d9', lw=3, label='Psychrophile / psychrotroph'),
+        Line2D([0],[0], color='#e07b54', lw=3, label='Mesophile'),
+        Line2D([0],[0], color='#2ecc71', lw=3, label=f'Candidate: {organism_name}'),
     ], loc='lower right', fontsize=9, framealpha=0.9)
 
     ax.text(0.01, 0.01,

@@ -1,16 +1,3 @@
-"""
-PsychroScan — 07_biological_annotation.py  (v2)
-================================================
-Anota biológicamente las Top 15 candidatas usando la API de UniProt.
-
-CAMBIOS RESPECTO A v1:
-  1. Lee top15_candidates_raw.csv generado por 05 (antes recalculaba el Top 15).
-  2. Carga el umbral desde results/models/threshold.txt en lugar de hardcodearlo.
-  3. Añade columna 'Industrial_Relevance' (EC class + keywords de función conocida).
-  4. Manejo robusto de errores de API (reintento 3x con backoff).
-  5. Imprime aviso si ≥ 8 / 15 proteínas tienen dominio Pfam (criterio de éxito v2).
-"""
-
 import os
 import time
 import requests

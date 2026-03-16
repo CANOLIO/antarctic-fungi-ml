@@ -1,22 +1,3 @@
-"""
-PsychroScan — 01b_fetch_brenda_coldenzymes.py  (v3 — public version)
-======================================================================
-Descarga secuencias de enzimas industriales desde UniProt REST API
-usando paginación por cursor.
-
-La lista de taxones se carga desde:
-
-    config/taxa_list.json   ← NO incluido en el repositorio público
-
-Formato esperado:
-{
-  "psychrophiles": [{"taxon_id": "12345", "name": "Organism_name"}, ...],
-  "mesophiles":    [{"taxon_id": "67890", "name": "Organism_name"}, ...]
-}
-
-Para colaboraciones o acceso al pipeline completo: ver README.md → Contact.
-"""
-
 import os
 import sys
 import json
@@ -26,7 +7,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # ─── RUTAS ────────────────────────────────────────────────────────────────────
-CONFIG_FILE = os.path.join("config", "taxa_list.json")
+CONFIG_FILE = os.path.join("config", "taxa_list_example.json")
 RAW_DIR     = os.path.join("data", "raw", "industrial_enzymes")
 LOG_FILE    = os.path.join(RAW_DIR, "_descarga_completada.log")
 os.makedirs(RAW_DIR, exist_ok=True)

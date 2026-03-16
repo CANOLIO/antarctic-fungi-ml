@@ -1,32 +1,3 @@
-"""
-PsychroScan — 03_feature_extraction.py  (v3 — Features termoadaptativos)
-=========================================================================
-CAMBIOS RESPECTO A v2:
-  1. Tres nuevos features termoadaptativos añadidos al CSV:
-       · IVYWREL_Index  : fracción de residuos I+V+Y+W+R+E+L en la secuencia.
-                          Predictor universal de T° óptima (Zeldovich et al. 2007,
-                          PNAS 104:16928). Aumenta con temperatura → frío = valores bajos.
-       · CvP_Bias       : (Cargados - Polares) / Longitud.
-                          Enzimas frías prefieren residuos polares (interacción con
-                          agua helada) sobre cargados. Frío = valor negativo / bajo.
-                          Kreil & Rost 2003, Nucleic Acids Res 31:3816.
-       · Flexibility_Ratio : (Gly + Ser) / (Pro + 0.001).
-                          Frío = alto (más flexibilidad estructural, menos rigidez de Pro).
-                          Feller & Gerday 2003, Nat Rev Microbiol 1:200.
-  2. Columna EC_Class corregida (bug en v2: se pasaba ec_class_name dos veces).
-  3. Sin otros cambios — estructura de pipeline idéntica.
-
-FÓRMULAS DE LOS NUEVOS FEATURES:
-  IVYWREL residuos = I, V, Y, W, R, E, L
-  IVYWREL_Index    = count(IVYWREL) / len(seq)
-
-  Cargados = R, K, D, E  (cargados a pH fisiológico)
-  Polares  = N, Q, S, T  (polares sin carga)
-  CvP_Bias = (count(RKDE) - count(NQST)) / len(seq)
-
-  Flexibility_Ratio = (count(G) + count(S)) / (count(P) + 0.001)
-"""
-
 import os
 import csv
 import sys

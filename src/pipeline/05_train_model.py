@@ -1,17 +1,3 @@
-"""
-PsychroScan — 05_train_model.py  (v3)
-======================================
-CAMBIOS RESPECTO A v2:
-  - GroupShuffleSplit reemplazado por StratifiedKFold con estratificación
-    simultánea por Thermal_Class y EC_Class. Esto evita que una familia EC
-    entera quede en test y domine el Top 15.
-  - Se crea una columna auxiliar 'strat_key' = EC_Class + "_" + Thermal_Class
-    para stratify en train_test_split (más simple y robusto que GroupShuffleSplit
-    para este tamaño de dataset).
-  - El Top 15 ahora incluye diversidad forzada por EC: máximo 5 candidatas
-    por familia EC, para que el reporte final no sea monocromático.
-"""
-
 import os
 import numpy as np
 import pandas as pd
@@ -24,7 +10,7 @@ from sklearn.metrics import (classification_report, fbeta_score,
 from sklearn.utils import resample
 
 # ─── RUTAS ────────────────────────────────────────────────────────────────────
-DATA_FILE   = os.path.join("data", "processed", "dataset_features.csv")
+DATA_FILE   = os.path.join("data", "processed", "dataset_features_nr90.csv")
 MODELS_DIR  = os.path.join("results", "models")
 RESULTS_DIR = os.path.join("results")
 os.makedirs(MODELS_DIR, exist_ok=True)
