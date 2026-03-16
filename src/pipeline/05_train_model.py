@@ -10,7 +10,7 @@ from sklearn.metrics import (classification_report, fbeta_score,
 from sklearn.utils import resample
 
 # ─── RUTAS ────────────────────────────────────────────────────────────────────
-DATA_FILE   = os.path.join("data", "processed", "dataset_features_nr90.csv")
+DATA_FILE   = os.path.join("data", "processed", "dataset_features.csv")
 MODELS_DIR  = os.path.join("results", "models")
 RESULTS_DIR = os.path.join("results")
 os.makedirs(MODELS_DIR, exist_ok=True)
