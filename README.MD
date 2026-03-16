@@ -301,21 +301,6 @@ For research collaboration or analysis-as-a-service: see [Contact](fabianrojasgu
 - PPI validated as proof-of-concept on 3 reference organisms; expansion is ongoing
 - `Organism_Source` field stores EC class rather than individual taxon name — strict organism-level partitioning was not implemented (acknowledged limitation)
 
----
-
-## Citation
-
-```bibtex
-@article{rojas2025psychroscan,
-  title   = {PsychroScan: A Machine Learning Pipeline for Sequence-Based
-             Discovery of Cold-Active Industrial Hydrolases},
-  author  = {Rojas, Fabi\'{a}n},
-  journal = {Computational and Structural Biotechnology Journal},
-  year    = {2025},
-  note    = {Under review},
-  url     = {https://github.com/CANOLIO/antarctic-fungi-ml}
-}
-```
 
 ---
 
