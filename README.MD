@@ -42,11 +42,16 @@ Trained on 21,562 hydrolytic enzyme sequences from 115 taxa (75 psychrophilic, 4
 |---|---|---|---|---|---|
 | **LightGBM — Full dataset** (n=21,562) | **0.9991** | **0.990** | **97%** | **100%** | **98%** |
 | LightGBM — CD-HIT 90% (n=9,666) | 0.9888 | 0.990 | 96% | 100% | 97% |
+| LightGBM — CD-HIT 40% (n=1,084) | 0.9504 | — | — | — | — |
 | Logistic Regression (baseline) | 0.9889 | 0.974 | 97% | 97% | 97% |
 | GRAVY threshold (baseline) | 0.3665 | — | — | — | — |
 | Random | 0.5000 | — | — | — | — |
 
-> **Sequence redundancy check:** CD-HIT at 90% identity (9,666 non-redundant sequences) gave AUC = 0.9888 (ΔAUC = 0.0103), confirming the full-dataset result is not inflated by sequence similarity.
+> **Sequence redundancy check:** CD-HIT at 90% identity (9,666 sequences) gave AUC = 0.9888
+> (ΔAUC = −0.0103); CD-HIT at 40% identity (1,084 sequences — 95% of the dataset removed)
+> gave AUC = 0.9504 (ΔAUC = −0.0487). Even under maximum deduplication pressure, the model
+> retains strong discriminative power, confirming the full-dataset result is not driven by
+> sequence redundancy.
 >
 > **Recall = 100% by design:** F2-Score optimisation prioritises recall. In bioprospecting, missing a true cold-active candidate is more costly than investigating a false positive.
 
