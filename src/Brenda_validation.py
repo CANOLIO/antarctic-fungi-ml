@@ -137,7 +137,7 @@ def _extract_features_inline(sequences):
             continue
         try:
             pa  = ProteinAnalysis(seq_clean)
-            aac = pa.get_amino_acids_percent()
+            aac = pa.amino_acids_percent
             row = {f"AAC_{aa}": aac.get(aa, 0.0) * 100 for aa in AA_LIST}
 
             # DPC
