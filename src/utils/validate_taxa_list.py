@@ -20,19 +20,22 @@ SUSPICIOUS_RANKS = {"genus", "family", "order", "class", "phylum", "kingdom",
 
 
 def get_taxon_info(taxon_id: str) -> dict:
-    try:
-        resp = requests.get(TAXONOMY_API.format(taxon_id), timeout=15)
-        if resp.status_code != 200:
-            return {"error": f"HTTP {resp.status_code}"}
-        data = resp.json()
-        return {
-            "scientificName": data.get("scientificName", "?"),
-            "rank":            data.get("rank", "?"),
-            "commonName":      data.get("commonName", ""),
-            "otherNames":      data.get("otherNames", []),
-        }
-    except Exception as e:
-        return {"error": str(e)}
+    for attempt in range(4):
+        try:
+            resp = requests.get(TAXONOMY_API.format(taxon_id), timeout=20)
+            if resp.status_code != 200:
+                return {"error": f"HTTP {resp.status_code}"}
+            data = resp.json()
+            return {
+                "scientificName": data.get("scientificName", "?"),
+                "rank":            data.get("rank", "?"),
+                "commonName":      data.get("commonName", ""),
+                "otherNames":      data.get("otherNames", []),
+            }
+        except Exception as e:
+            if attempt == 3:
+                return {"error": str(e)}
+            time.sleep(1.5)
 
 
 def validate():
