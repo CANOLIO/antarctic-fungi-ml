@@ -1,23 +1,4 @@
-"""
-validate_taxa_list.py — PsychroScan
-=====================================
-Valida que cada taxon_id en config/taxa_list.json sea una ESPECIE (o
-subespecie/strain), no un rango taxonómico más alto (género, familia, orden,
-clase, phylum). UniProt's `taxonomy_id:` es jerárquico: si un ID corresponde
-a un rango alto, la query de 01b_fetch_brenda_coldenzymes.py trae TODOS los
-descendientes de ese clado, contaminando el dataset silenciosamente.
 
-Caso real detectado: taxon_id "1760" etiquetado como "Rhodococcus_erythropolis"
-en realidad es la clase Actinobacteria (rank: class) — esto metió miles de
-secuencias de Streptomyces, Mycobacterium, Micromonospora, etc. en el bucket
-"Cold" del dataset de entrenamiento.
-
-Uso:
-    python src/utils/validate_taxa_list.py
-    python src/utils/validate_taxa_list.py --fix-suggestions   # busca el ID correcto
-
-Requiere acceso a internet (UniProt REST API — rest.uniprot.org).
-"""
 import os
 import sys
 import json

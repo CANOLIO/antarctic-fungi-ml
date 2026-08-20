@@ -1,30 +1,4 @@
-"""
-organism_resolver.py — PsychroScan
-====================================
-Resuelve la identidad TAXONÓMICA REAL de cada secuencia a partir del header
-FASTA de UniProt, y la cruza contra config/taxa_list.json.
 
-PROBLEMA QUE RESUELVE
-----------------------
-La columna 'Organism_Source' del dataset original almacenaba el nombre de la
-clase EC (bug en 03_feature_extraction.py: `extract_features(..., ec_class_name,
-ec_class_name, thermal_class)` — el organismo recibía el mismo valor que la
-clase EC). Esto impedía:
-  1. Hacer Leave-One-Organism-Out CV real (solo se podía hacer Leave-One-EC-Out).
-  2. Detectar si el mismo organismo aporta secuencias a train Y test.
-  3. Detectar inconsistencias entre el label Cold/Warm del archivo y el
-     T_opt_C real documentado en taxa_list.json.
-
-CÓMO FUNCIONA
--------------
-UniProt entrega FASTA con headers como:
-    >sp|Q9UIF9|BAZ2A_HUMAN Bromodomain protein OS=Homo sapiens OX=9606 GN=BAZ2A PE=1 SV=2
-
-Biopython's `record.id` solo captura "sp|Q9UIF9|BAZ2A_HUMAN" (el bug original
-solo miraba esto). El organismo real vive en record.description, en los
-campos OS= (nombre) y OX= (taxon ID). Este módulo los extrae y los cruza con
-config/taxa_list.json usando el taxon ID (más robusto que el nombre de texto).
-"""
 
 import json
 import os

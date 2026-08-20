@@ -1,21 +1,4 @@
-"""
-PsychroScan — report.py  (v3.0 — plain-language edition)
-==========================================================
-Generates a PDF + Markdown report from 09_predict_new_genome.py outputs.
-Designed for biologists and researchers with no machine-learning background.
 
-Key additions over v2.0:
-  - Automatic enzyme-type detection from Protein_ID via UniProt REST API
-  - Plain-language explanations replacing all ML jargon
-  - Candidate table now shows enzyme type, not just probability
-  - "What to do next" section with concrete lab steps
-
-Usage:
-    python src/report.py                        # all organisms in data/new_genomes/
-    python src/report.py --organism NAME        # one organism
-    python src/report.py --no-pdf               # Markdown only (faster)
-    python src/report.py --no-uniprot           # skip API calls (offline mode)
-"""
 
 import os
 import re

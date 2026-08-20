@@ -1,9 +1,4 @@
-"""
-PsychroScan — generate_supplementary_S1.py
-Genera Supplementary Table S1: panel de referencia taxonómica
-Corre desde la raíz del proyecto:
-    python src/generate_supplementary_S1.py
-"""
+
 import os
 import pandas as pd
 

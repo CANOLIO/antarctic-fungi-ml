@@ -1,14 +1,4 @@
-"""
-leakage_sanity_check.py — PsychroScan
-=======================================
-Chequeo rápido (sin llamadas a red) de los 3 problemas críticos detectados
-en la auditoría: taxon_ids corregidos, organismos de benchmark ausentes de
-training, y splits train/test disjuntos. Pensado para correr después de
-03_feature_extraction.py y después de 05_train_model.py.
 
-Uso (desde la raíz del proyecto):
-    python src/utils/leakage_sanity_check.py
-"""
 import os
 import json
 import sys

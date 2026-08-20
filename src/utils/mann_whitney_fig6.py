@@ -1,27 +1,4 @@
-"""
-Mann-Whitney U tests para Fig. 6 — Gly, Ser, Pro
-Corre desde la raíz del proyecto:
-    python src/utils/mann_whitney_fig6.py
 
-FIX (v2): el test original comparaba ~21,562 PROTEÍNAS individuales como si
-fueran observaciones independientes. En realidad provienen de ~20-27
-ORGANISMOS — proteínas del mismo organismo comparten historia evolutiva y
-sesgos genómicos, no son réplicas independientes. Con miles de "muestras"
-pseudo-replicadas, el p-valor se vuelve casi automáticamente significativo
-(p<0.001) incluso si la diferencia real fuera trivial — el N inflado no
-refleja el N real de evidencia biológica.
-
-Ahora se reporta:
-  1. Nivel proteína (como antes) — se mantiene por comparabilidad, pero
-     ETIQUETADO explícitamente como pseudo-replicado.
-  2. Nivel organismo (NUEVO) — un valor por organismo (la media de esa
-     especie), n = organismos reales. Esta es la prueba estadísticamente
-     válida; es la que debe citarse en el paper.
-
-Si ambas apuntan en la misma dirección con el mismo signo, el hallazgo es
-robusto. Si solo el nivel-proteína es "significativo", es una señal de que
-el efecto reportado podría ser un artefacto de pseudo-réplica.
-"""
 import os
 import pandas as pd
 import numpy as np

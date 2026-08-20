@@ -1,22 +1,3 @@
-"""
-PsychroScan — benchmark_known_enzymes.py  (v3)
-===============================================
-Validación retrospectiva usando el FASTA real del organismo.
-
-En lugar de asumir accesiones externas, este script:
-1. Lee el FASTA y extrae todas las proteínas con función hidrolítica anotada
-   en el header (lipasas, amilasas, xilanasas, celulasas, proteasas)
-2. Corre el modelo sobre el proteoma completo
-3. Reporta el rank de cada enzima de interés dentro del proteoma
-
-Esto es válido para CUALQUIER organismo — no requiere accesiones conocidas.
-Solo requiere que las proteínas de interés estén anotadas en el header FASTA.
-
-Uso:
-    python benchmark_known_enzymes.py
-    python benchmark_known_enzymes.py --top 50   # cambiar cutoff de reporte
-"""
-
 import os
 import re
 import sys

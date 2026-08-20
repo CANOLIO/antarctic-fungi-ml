@@ -1,26 +1,4 @@
-"""
-get_logreg_metrics.py — comparación Logistic Regression vs LightGBM
 
-FIX (v2):
-  1. El umbral usado era el óptimo para las probabilidades de LightGBM
-     (guardado en threshold.txt), aplicado directamente a las probabilidades
-     de Logistic Regression — dos modelos con distribuciones de probabilidad
-     distintas no comparten un umbral óptimo. Ahora se busca el umbral F2-óptimo
-     propio para LogReg, igual que se hace para LightGBM en 05_train_model.py.
-  2. Usa el split por organismo del manifiesto (results/models/split_manifest.json)
-     en vez de re-derivar un split de proteínas independiente.
-
-FIX (v3) — leakage de umbral:
-  El fix v2 seguía buscando el umbral F2-óptimo de LogReg SOBRE EL TEST SET
-  (`find_best_threshold(probs_lr, y_te)`), el mismo problema que tenía
-  05_train_model.py antes de su fix: el umbral es, en la práctica, un
-  hiperparámetro, y elegirlo mirando las etiquetas de test sesga
-  optimistamente Precision/Recall/F2/Accuracy (el AUC no se ve afectado).
-  Ahora el umbral se fija con GroupKFold por organismo SOLO sobre train
-  (predicciones out-of-fold), igual que en 05_train_model.py, y el test
-  set solo se usa una vez, al final, para reportar métricas con ese
-  umbral ya fijado.
-"""
 import os
 import json
 import pandas as pd

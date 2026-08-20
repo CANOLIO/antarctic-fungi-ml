@@ -1,25 +1,4 @@
-"""
-PsychroScan — blast_benchmark.py (v2)
-=======================================
-Compara el recall de PsychroScan vs BLASTp sobre el hold-out test set.
 
-FIX (v2):
-  1. Antes reconstruía su propio split (comentario: "mismo split que
-     05_train_model.py"), pero usaba dataset_features.csv mientras
-     05_train_model.py (antes del fix) usaba dataset_features_nr90.csv —
-     archivos distintos, splits no coincidentes. Ahora lee
-     results/models/split_manifest.json (fuente única de verdad).
-  2. La DB de referencia de BLAST se construía con TODAS las secuencias Cold,
-     incluyendo las de organismos que ahora sabemos son parte del test set.
-     Esto le daba a BLAST una ventaja injusta: podía encontrar hits casi
-     idénticos (misma proteína/parálogo, mismo organismo) de las queries que
-     se supone está "adivinando" sin haberlas visto. Ahora la DB se construye
-     SOLO con secuencias de organismos de TRAIN.
-
-Uso:
-    python src/blast_benchmark.py
-    (requiere BLAST+ instalado: makeblastdb, blastp)
-"""
 
 import os
 import json

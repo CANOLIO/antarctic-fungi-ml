@@ -1,25 +1,3 @@
-"""
-PsychroScan — brenda_validation.py
-=====================================
-Validación externa con BRENDA: recupera enzimas psicrófilas documentadas
-con T_opt <= 15°C que NO estuvieron en el training set, las puntúa con el
-modelo entrenado, y reporta qué fracción aparece en el top del ranking.
-
-Esto convierte el PPI de "proof-of-concept" a "validado externamente".
-
-Estrategia:
-  1. Descarga entradas de BRENDA con T_opt documentada <= 15°C
-     (vía UniProt REST, filtrando por temperatura óptima en texto)
-  2. Excluye cualquier secuencia cuyos taxones estén en el training set
-  3. Extrae features con el mismo pipeline (script 03)
-  4. Puntúa con el modelo entrenado
-  5. Reporta: rank medio, fracción en top-10%, top-5%, top-1%
-
-Uso:
-    python src/brenda_validation.py
-
-Requiere acceso a internet (UniProt REST API).
-"""
 
 import os
 import json
@@ -159,7 +137,7 @@ def _extract_features_inline(sequences):
             continue
         try:
             pa  = ProteinAnalysis(seq_clean)
-            aac = pa.amino_acids_percent
+            aac = pa.get_amino_acids_percent()
             row = {f"AAC_{aa}": aac.get(aa, 0.0) * 100 for aa in AA_LIST}
 
             # DPC

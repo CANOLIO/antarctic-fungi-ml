@@ -1,30 +1,4 @@
-"""
-rebuild_taxa_list_by_name.py — PsychroScan
-=============================================
-`validate_taxa_list.py` encontró que 62/102 taxon_ids en taxa_list.json no
-corresponden al organismo que dice el campo "name" — incluyendo casos
-absurdos (un ID de "Methanogenium_frigidum" apuntando a Treponema pallidum,
-"Chromobacterium_violaceum" apuntando a un nemátodo). Esto no es un puñado
-de errores puntuales — sugiere que la columna taxon_id nunca se verificó
-contra name en absoluto (columnas desalineadas, join corrupto, etc.).
 
-Este script INVIERTE la estrategia: en vez de confiar en el taxon_id
-existente, busca el ID correcto en UniProt A PARTIR del nombre científico
-(que presumiblemente sí viene de una curación bibliográfica real), y
-reconstruye taxa_list.json desde cero.
-
-Salida:
-  - config/taxa_list_rebuilt.json   (nunca sobreescribe el original)
-  - results/taxa_list_rebuild_report.json  (qué cambió, qué quedó ambiguo)
-
-Casos que quedan para revisión manual (el script NO decide por vos):
-  - Nombre no encontrado en UniProt (posible sinónimo/nombre desactualizado)
-  - Más de un match exacto (nombre ambiguo, ej. usado por 2 taxones distintos)
-  - El nombre resuelve a un rank distinto de species/strain
-
-Uso:
-    python src/utils/rebuild_taxa_list_by_name.py
-"""
 import os
 import re
 import json
