@@ -177,34 +177,48 @@ BRENDA External Validation Summary:
 
 ---
 
-### 3.6. Taxonomic Domain Robustness and TreeSHAP Corroboration
+### 3.6. Taxonomic Domain Robustness and Domain-Separated TreeSHAP Analysis
 
-To rule out the possibility that classification accuracy arose as an artifact of kingdom-level phylogenetic divergence (e.g., distinguishing bacterial from fungal proteomes rather than cold adaptation), held-out evaluation was stratified by taxonomic domain (`src/utils/check_domain_auc.py`):
+To rigorously evaluate whether predictive accuracy reflects genuine biophysical adaptation or kingdom-level phylogenetic divergence (e.g., distinguishing bacterial from fungal proteomes), held-out evaluation was stratified by taxonomic domain (`src/utils/check_domain_auc.py`):
 
-| Taxonomic Domain | Held-Out Sequences ($n$) | Class Distribution | Intra-Domain ROC-AUC | $F_2$-Score | Sensitivity / Recall (Cold) | Precision (Cold) |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Bacteria** | **497** ($80.0\%$) | $162$ Cold / $335$ Warm | **0.9172** | **0.8465** | **99.4%** ($161/162$) | **53.1%** |
-| **Fungi** | **124** ($20.0\%$) | $31$ Cold / $93$ Warm | **0.4988** | **0.5936** | **83.9%** ($26/31$) | **27.4%** |
-| **Combined Cohort** | **621** | $193$ Cold / $428$ Warm | **0.8761** | **0.7991** | **96.9%** ($187/193$) | **47.0%** |
-
-* Within the dominant bacterial cohort ($n = 497$), intra-domain discriminability is remarkably elevated ($\text{ROC-AUC} = 0.9172$, $\text{Recall} = 99.4\%$), demonstrating that the classifier learns robust thermal adaptation signals independent of cross-kingdom divergences.
-* In fungal sequences, the model retains high sensitivity ($83.9\%$ of cold fungal enzymes recovered), but exhibits lower intra-kingdom discrimination due to elevated baseline loop flexibility in eukaryotic hydrolases.
-
-Furthermore, to ensure feature importance rankings were not inflated by high feature cardinality (400 DPCs vs. 20 AACs), we validated Gain importance against exact **TreeSHAP** (*SHapley Additive exPlanations*) contributions computed natively over the held-out cohort:
+| Taxonomic Domain | Held-Out Sequences ($n$) | Organism Cohort | Class Distribution | Intra-Domain ROC-AUC | $F_2$-Score | Sensitivity / Recall (Cold) | Precision (Cold) | Intra-Domain Accuracy |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Bacteria** | **497** ($80.0\%$) | **41** organisms | $162$ Cold / $335$ Warm | **0.9172** | **0.8465** | **99.4%** ($161/162$) | **53.1%** | **71.2%** |
+| **Fungi** | **124** ($20.0\%$) | **9** organisms | $31$ Cold / $93$ Warm | **0.4988** | **0.5936** | **83.9%** ($26/31$) | **27.4%** | **40.3%** |
+| **Combined Cohort** | **621** | **50** organisms | $193$ Cold / $428$ Warm | **0.8761** | **0.7991** | **96.9%** ($187/193$) | **47.0%** | **65.1%** |
 
 ```
-Top Features Validated by Mean Absolute TreeSHAP:
-  1. DPC_IA (Ile-Ala) : Mean |SHAP| = 0.1393  (Gain Rank #3)
-  2. AAC_A  (Alanine) : Mean |SHAP| = 0.1113  (Gain Rank #7)
-  3. DPC_ES (Glu-Ser) : Mean |SHAP| = 0.1070  (Gain Rank #2)
-  4. DPC_AD (Ala-Asp) : Mean |SHAP| = 0.0984  (Gain Rank #9)
-  5. AAC_P  (Proline) : Mean |SHAP| = 0.0965  (Gain Rank #4)
-  6. DPC_NK (Asn-Lys) : Mean |SHAP| = 0.0956  (Gain Rank #1)
-  7. AAC_R  (Arginine): Mean |SHAP| = 0.0848  (Gain Rank #8)
-  8. AAC_K  (Lysine)  : Mean |SHAP| = 0.0772  (Gain Rank #11)
+Key Methodological Insights on Domain Generalization:
+───────────────────────────────────────────────────────────────────────────────────
+1. Bacterial Generalization: Across the dominant bacterial cohort (n = 497 from 41 unseen 
+   species), the model achieves exceptional intra-domain discriminability (ROC-AUC = 0.9172, 
+   Recall = 99.4%), proving that the classifier learns robust thermal adaptation signals 
+   independent of kingdom-level phylogenetic classification.
+2. Fungal Domain Limitation: Within Fungi, ranking discriminability is indistinguishable 
+   from random chance (ROC-AUC = 0.4988; Accuracy = 40.3% vs. 75.0% Zero-R majority baseline), 
+   evaluated on n = 124 sequences from 9 organisms containing only one cold species (Geotrichum 
+   candidum, n = 31). Consequently, the global held-out ROC-AUC (0.8761) is driven by bacterial 
+   performance and cannot be interpreted as evidence of robust eukaryotic generalization.
+───────────────────────────────────────────────────────────────────────────────────
 ```
 
-The strict concordance between Information Gain and cardinality-invariant TreeSHAP rankings confirms that dipeptides `DPC_IA`, `DPC_ES`, and `DPC_NK`, alongside rigidifying residues `AAC_P` and `AAC_A`, represent genuine biophysical drivers of model inference.
+To diagnose the mechanistic origin of this domain disparity, we computed domain-separated **TreeSHAP** (*SHapley Additive exPlanations*) contributions:
+
+```
+Top Predictive Descriptors Stratified by Domain (Mean |SHAP|):
+  Rank │ Bacteria Test Cohort (n = 497)       │ Fungi Test Cohort (n = 124)
+  ─────┼──────────────────────────────────────┼──────────────────────────────────────
+   #1  │ DPC_IA (Ile-Ala) : 0.1345            │ DPC_IA (Ile-Ala) : 0.1585
+   #2  │ AAC_A  (Alanine) : 0.1197            │ DPC_ES (Glu-Ser) : 0.1090
+   #3  │ DPC_NK (Asn-Lys) : 0.1067            │ DPC_CY (Cys-Tyr) : 0.0914
+   #4  │ DPC_ES (Glu-Ser) : 0.1064            │ AAC_P  (Proline) : 0.0906
+   #5  │ DPC_AD (Ala-Asp) : 0.1015            │ DPC_AD (Ala-Asp) : 0.0858
+   #6  │ AAC_P  (Proline) : 0.0980            │ AAC_K  (Lysine)  : 0.0817
+   #7  │ AAC_R  (Arginine): 0.0880            │ DPC_EQ (Glu-Gln) : 0.0795
+   #8  │ AAC_K  (Lysine)  : 0.0761            │ AAC_A  (Alanine) : 0.0779
+```
+
+**Biophysical Diagnostic:** Because training data are predominantly bacterial ($81.5\%$, $2,085 / 2,557$ sequences), the decision trees calibrate baseline flexibility thresholds against bacterial mesophiles. Fungal mesophiles (*Aspergillus nidulans*, *Pyricularia oryzae*, *Trichoderma reesei*) inherently exhibit elevated polar and loop flexibility relative to prokaryotic mesophiles, causing the model to assign them elevated predicted cold probabilities ($\text{Mean } P(\text{Cold}) \approx 0.18 - 0.20$), exceeding the cold fungal threshold and depressing intra-fungal ranking precision.
 
 ---
 
@@ -234,8 +248,9 @@ The low cumulative variance accounted for by the first two principal components 
 It is imperative to state the operational boundaries and assumptions of the current framework:
 
 1. **Enzyme Class Restrictions:** The framework is currently calibrated on five industrial hydrolase classes (EC 3.1.1.3, EC 3.2.1.1, EC 3.2.1.4, EC 3.4.21.-, EC 3.4.24.-). Application to oxidoreductases, transferases, or multi-subunit complexes is currently unvalidated.
-2. **Phenotypic Proxy Labeling:** Thermal class annotations are assigned at the organismal level based on physiological literature. Non-adaptive core housekeeping enzymes from psychrophilic hosts may introduce baseline label noise.
-3. **Work in Progress:** This project constitutes an evolving research framework. Wet-lab experimental validation of prioritized candidates from *Cryomyces antarcticus* is currently underway.
+2. **Taxonomic Domain Disparity:** The public training sequence repository is predominantly prokaryotic ($81.5\%$ Bacteria, $18.5\%$ Fungi). As demonstrated in Section 3.6, while intra-domain performance is robust in Bacteria ($\text{ROC-AUC} = 0.9172$), intra-domain ranking in Fungi is indistinguishable from chance ($\text{ROC-AUC} = 0.4988$, $n = 124$ across 9 organisms). Predictions on eukaryotic fungal proteomes (*Cryomyces antarcticus*) must be treated as preliminary and exploratory until cold fungal training representation is expanded.
+3. **Phenotypic Proxy Labeling:** Thermal class annotations are assigned at the organismal level based on physiological literature. Non-adaptive core housekeeping enzymes from psychrophilic hosts may introduce baseline label noise.
+4. **Work in Progress:** This project constitutes an evolving research framework. Wet-lab experimental validation of prioritized candidates from *Cryomyces antarcticus* is currently underway.
 
 ---
 
