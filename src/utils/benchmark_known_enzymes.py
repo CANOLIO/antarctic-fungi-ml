@@ -69,7 +69,7 @@ POLAR_SET   = set("NQST")
 
 def load_model():
     model  = joblib.load(os.path.join(MODELS_DIR, "optuna_f2_model.pkl"))
-    thresh = float(open(os.path.join(MODELS_DIR, "threshold.txt")).read().strip())
+    thresh = float(open(os.path.join(MODELS_DIR, "threshold.txt")).read().strip().split(",")[0])
     fcols  = open(os.path.join(MODELS_DIR, "feature_columns.txt")).read().strip().split('\n')
     return model, thresh, fcols
 

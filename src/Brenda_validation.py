@@ -200,7 +200,7 @@ def _extract_features_inline(sequences):
 def score_with_psychroscan(feat_df):
     """Puntúa las secuencias con el modelo entrenado."""
     model  = joblib.load(os.path.join(MODELS_DIR, "optuna_f2_model.pkl"))
-    thresh = float(open(os.path.join(MODELS_DIR, "threshold.txt")).read())
+    thresh = float(open(os.path.join(MODELS_DIR, "threshold.txt")).read().strip().split(",")[0])
     fcols  = open(os.path.join(MODELS_DIR, "feature_columns.txt")).read().strip().split('\n')
 
     available = [c for c in fcols if c in feat_df.columns]

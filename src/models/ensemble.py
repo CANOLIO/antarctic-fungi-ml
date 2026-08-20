@@ -1,30 +1,76 @@
 import numpy as np
+import pandas as pd
 
-class PsychroScanEnsemble:
+FUNGI_GENERA = {
+    'saccharomyces', 'schizosaccharomyces', 'candida', 'aspergillus', 'neurospora',
+    'trichoderma', 'botrytis', 'ustilago', 'magnaporthe', 'yarrowia', 'rhodotorula',
+    'leucosporidium', 'glaciozyma', 'mrakia', 'cryomyces', 'pseudogymnoascus',
+    'thelebolus', 'phenoliferia', 'goffeauzyma', 'guehomyces', 'tausonia',
+    'naganishia', 'geomyces', 'cladosporium', 'penicillium', 'geotrichum',
+    'pyricularia', 'emericella', 'mycosarcoma', 'dioszegia', 'sungouiella',
+    'friedmanniomyces', 'rachicladosporium', 'phaffia', 'debaryomyces'
+}
+
+class HierarchicalPsychroScan:
     """
-    Ensemble biofísico multimodelo (LightGBM + Random Forest + ExtraTrees)
-    con Feature Denoising por Mutual Information.
-    Garantiza compatibilidad 100% con los scripts downstream:
+    Arquitectura Jerárquica Condicionada por Dominio (Two-Stage Pipeline):
+      - Etapa 1: Clasificador de Dominio (Bacteria vs Fungi)
+      - Etapa 2A: Rama Bacteriana (Feature Selection bacteriano + Ensamble bacteriano + tau_b)
+      - Etapa 2B: Rama Fúngica (Feature Selection fúngico + Ensamble fúngico + tau_f)
+    
+    Garantiza compatibilidad 100% con toda la suite downstream:
       predict_proba(X)[:, 0] -> P(Cold)
       predict_proba(X)[:, 1] -> P(Warm)
     """
-    def __init__(self, m_lgb, m_rf, m_et, selector=None):
-        self.m_lgb = m_lgb
-        self.m_rf = m_rf
-        self.m_et = m_et
-        self.selector = selector
+    def __init__(self, domain_pipe, bact_branch, fungi_branch, tau_b=0.2800, tau_f=0.2300):
+        self.domain_pipe  = domain_pipe
+        self.bact_branch  = bact_branch   # dict: {'sel': sel_b, 'lgb': m_l, 'rf': m_r, 'et': m_e}
+        self.fungi_branch = fungi_branch  # dict: {'sel': sel_f, 'rf': m_r, 'et': m_e, 'lgb': m_l}
+        self.tau_b        = tau_b
+        self.tau_f        = tau_f
 
     def predict_proba(self, X):
-        X_mat = np.array(X, dtype=np.float32)
-        if self.selector is not None:
-            X_mat = self.selector.transform(X_mat)
-        p_lgb = self.m_lgb.predict_proba(X_mat)[:, 1]
-        p_rf  = self.m_rf.predict_proba(X_mat)[:, 1]
-        p_et  = self.m_et.predict_proba(X_mat)[:, 1]
-        p_cold = 0.50 * p_lgb + 0.25 * p_rf + 0.25 * p_et
+        X_df = pd.DataFrame(X) if not isinstance(X, pd.DataFrame) else X.copy()
+        X_mat = np.array(X_df, dtype=np.float32)
+        
+        # Etapa 1: Predicción de dominio (0=Bacteria, 1=Fungi)
+        pred_domains = self.domain_pipe.predict(X_mat)
+        
+        p_cold = np.zeros(len(X_mat), dtype=np.float32)
+        
+        for i in range(len(X_mat)):
+            xi = X_mat[[i]]
+            if pred_domains[i] == 0:
+                # Rama Bacteriana
+                xs = self.bact_branch['sel'].transform(xi)
+                pl = self.bact_branch['lgb'].predict_proba(xs)[:, 1][0]
+                pr = self.bact_branch['rf'].predict_proba(xs)[:, 1][0]
+                pe = self.bact_branch['et'].predict_proba(xs)[:, 1][0]
+                p_cold[i] = 0.50 * pl + 0.25 * pr + 0.25 * pe
+            else:
+                # Rama Fúngica
+                xs = self.fungi_branch['sel'].transform(xi)
+                pr = self.fungi_branch['rf'].predict_proba(xs)[:, 1][0]
+                pe = self.fungi_branch['et'].predict_proba(xs)[:, 1][0]
+                pl = self.fungi_branch['lgb'].predict_proba(xs)[:, 1][0]
+                p_cold[i] = 0.40 * pr + 0.40 * pe + 0.20 * pl
+                
         p_warm = 1.0 - p_cold
         return np.column_stack([p_cold, p_warm])
 
-    def predict(self, X, threshold=0.25):
+    def predict(self, X):
+        X_df = pd.DataFrame(X) if not isinstance(X, pd.DataFrame) else X.copy()
+        X_mat = np.array(X_df, dtype=np.float32)
+        pred_domains = self.domain_pipe.predict(X_mat)
         probs = self.predict_proba(X)[:, 0]
-        return np.where(probs >= threshold, 0, 1)
+        
+        preds = np.zeros(len(probs), dtype=int)
+        for i in range(len(probs)):
+            tau = self.tau_f if pred_domains[i] == 1 else self.tau_b
+            # Thermal_Class: 0 = Cold, 1 = Warm
+            preds[i] = 0 if probs[i] >= tau else 1
+        return preds
+
+
+# Backward compatibility alias
+PsychroScanEnsemble = HierarchicalPsychroScan

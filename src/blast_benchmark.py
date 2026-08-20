@@ -143,7 +143,7 @@ def evaluate_blast(test_df, blast_df, evalue_thresh):
 def get_psychroscan_metrics(test_df):
     """Métricas de PsychroScan sobre el MISMO test set (manifiesto), sin re-derivar split."""
     model  = joblib.load(os.path.join(MODELS_DIR, "optuna_f2_model.pkl"))
-    thresh = float(open(os.path.join(MODELS_DIR, "threshold.txt")).read())
+    thresh = float(open(os.path.join(MODELS_DIR, "threshold.txt")).read().strip().split(",")[0])
     fcols  = open(os.path.join(MODELS_DIR, "feature_columns.txt")).read().strip().split('\n')
 
     df_all = pd.read_csv(DATA_FILE)
