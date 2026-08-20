@@ -1,12 +1,13 @@
 # ══════════════════════════════════════════════════════════════════════
 #  PsychroScan .gitignore
-#  Rule: code + example config = public. Everything else = private.
+#  Rule: source code + example templates = public. Everything else = private.
 # ══════════════════════════════════════════════════════════════════════
 
-# ── Python ────────────────────────────────────────────────────────────
+# ── Python Environments & Bytecode ────────────────────────────────────
 .venv/
 venv/
 env/
+ENV/
 __pycache__/
 *.pyc
 *.pyo
@@ -15,51 +16,53 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
+.coverage
+htmlcov/
 
-# ── macOS ─────────────────────────────────────────────────────────────
+# ── Backups & Editor Swap Files ───────────────────────────────────────
+*.bak
+*.bak_*
+*.swp
+*.swo
+*~
 .DS_Store
 .AppleDouble
 .LSOverride
 
-# ── IDE ───────────────────────────────────────────────────────────────
+# ── IDEs & Tooling ────────────────────────────────────────────────────
 .vscode/
 .idea/
+.spyderproject
+.spyproject
 
-# ── DATA (large files, reproducible from scripts) ─────────────────────
+# ── Raw & Processed Data (Reproducible via scripts) ───────────────────
 data/raw/
 data/processed/
 data/reference_panel/
-data/new_genomes/
-# Keep data/Done/ excluded too
 data/Done/
+data/new_genomes/
 
-# ── PRIVATE CONFIG (full taxon list = IP) ─────────────────────────────
-# taxa_list_example.json IS tracked — reviewers use it to reproduce
+# ── Private Configuration & Taxon IP ──────────────────────────────────
+# config/taxa_list_example.json IS tracked for open reproducibility
 config/taxa_list.json
+config/*.bak*
 
-# ── TRAINED MODEL (commercial asset) ──────────────────────────────────
-results/models/
+# ── Trained Models & Serialized Checkpoints ───────────────────────────
+results/models/*.pkl
+results/models/*.txt
+results/models/split_manifest.json
 
-# ── UNPUBLISHED RESULTS (embargo until paper acceptance) ──────────────
-# figures, benchmark outputs, supplementary — released on acceptance
+# ── Embargoed Results, Figures & Reports ──────────────────────────────
 results/figures/
 results/benchmark/
-results/validation/
+results/reports/
 results/supplementary/
-results/top15_candidates_raw.csv
-results/top15_bioprospecting_report.csv
-top15_bioprospecting_report.csv
+results/taxa_list_*.json
+results/top15_*.csv
+top15_*.csv
 
-# ── LOGS ──────────────────────────────────────────────────────────────
+# ── Logs & Temporary Execution Data ───────────────────────────────────
 *.log
 logs/
-
-# ── WHAT IS TRACKED (public) ─────────────────────────────────────────
-# src/pipeline/   — all scripts
-# src/utils/      — helper scripts
-# src/report.py   — executive summary generator
-# config/taxa_list_example.json
-# examples/figures/     — selected paper figures (ROC, LOOO-CV, etc.)
-# examples/dendrograms/ — dendrogram PNGs
-# examples/benchmark/   — Fig4 composite
-# README.md, .gitignore, requirements.txt, LICENSE, REPORT.md
+.system_generated/

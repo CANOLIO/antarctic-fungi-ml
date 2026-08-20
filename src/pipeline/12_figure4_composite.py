@@ -72,15 +72,20 @@ def build_figure():
 
     # Panel B: dendrograma
     ax_dend   = fig.add_subplot(gs[1])
-    dend_path = os.path.join(GENOMES_DIR,
-                             'Pseudoalteromonas_haloplanktis_TAC125_PPI_context.png')
-    if os.path.exists(dend_path):
+    candidate_paths = [
+        os.path.join(GENOMES_DIR, 'Pseudoalteromonas_haloplanktis_TAC125_PPI_context.png'),
+        os.path.join("data", "Done", 'Pseudoalteromonas_haloplanktis_TAC125_PPI_context.png'),
+        os.path.join("examples", "dendrograms", 'Pseudoalteromonas_haloplanktis_TAC125_PPI_context.png'),
+        os.path.join(GENOMES_DIR, 'Cryomyces_antarcticus_PPI_context.png'),
+    ]
+    dend_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+    if dend_path and os.path.exists(dend_path):
         img = mpimg.imread(dend_path)
         ax_dend.imshow(img, aspect='auto')
         ax_dend.axis('off')
     else:
         ax_dend.text(0.5, 0.5,
-                     'Dendrograma no encontrado.\nCorre: python src/09_predict_new_genome.py --no-pfam',
+                     'Dendrograma no encontrado.\nCorre: python src/pipeline/09_predict_new_genome.py --no-pfam',
                      ha='center', va='center', fontsize=10, color='#e74c3c',
                      transform=ax_dend.transAxes)
         ax_dend.axis('off')

@@ -201,6 +201,9 @@ def build_context_dendrogram(X_feat, organism_name, panel_df, output_path):
     )
 
     # Colorear etiquetas
+    # fig.canvas.draw() es necesario para que matplotlib popule las etiquetas
+    # antes de acceder a ellas via get_ymajorticklabels()
+    fig.canvas.draw()
     color_map = {-1: '#2ecc71', 0: '#4a90d9', 1: '#e07b54'}
     thermal_by_label = dict(zip(combined_labels, combined_thermal))
     for tick in ax.get_ymajorticklabels():
@@ -218,7 +221,7 @@ def build_context_dendrogram(X_feat, organism_name, panel_df, output_path):
     ], loc='lower right', fontsize=9, framealpha=0.9)
 
     ax.text(0.01, 0.01,
-        f"n={len(common_feats)} features  ·  {len(ref_labels)} organismos de referencia  ·  método: Ward",
+        f"n={len(common_feats)} features  ·  {len(ref_labels)} reference organisms  ·  method: Ward",
         transform=ax.transAxes, fontsize=7, color='#888888', va='bottom')
 
     fig.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -258,6 +261,20 @@ def analyze(query_pfam=True):
 
         probs_cold = model.predict_proba(X_new.astype(np.float32))[:, 0]
         df_res     = pd.DataFrame({'Protein_ID': prot_ids, 'Cold_Probability': probs_cold})
+        # Detección de tipo enzimático por keyword (sin API) para report.py
+        import re as _re
+        _EC_PAT = {
+            'Lipase / Esterase':  _re.compile(r'lipas|esterase|phospholipas', _re.I),
+            'Alpha-Amylase':      _re.compile(r'amylas|glucosidas|glucoamylas', _re.I),
+            'Cellulase':          _re.compile(r'cellulas|cellobiohydrolas|endoglucanas', _re.I),
+            'Serine Protease':    _re.compile(r'proteas|peptidas|subtilis|trypsin|chymotrypsin', _re.I),
+            'Metalloprotease':    _re.compile(r'metalloproteas|thermolysin|collagenase', _re.I),
+        }
+        def _detect_ec(pid):
+            for etype, pat in _EC_PAT.items():
+                if pat.search(pid): return etype
+            return 'Unknown'
+        df_res['Enzyme_Type_Hint'] = df_res['Protein_ID'].apply(_detect_ec)
 
         ppi_data = compute_ppi_v2(df_res, X_new, query_pfam=query_pfam)
         ppi      = ppi_data['ppi']
@@ -287,6 +304,8 @@ def analyze(query_pfam=True):
         dend_path = os.path.join(NEW_GENOMES_DIR, f"{organism_name}_PPI_context.png")
         build_context_dendrogram(X_new, organism_name, reference_df, dend_path)
 
+        df_res['PPI']              = round(ppi, 2)
+        df_res['PPI_Verdict']      = veredicto
         df_res.to_csv(
             os.path.join(NEW_GENOMES_DIR, f"{organism_name}_full_results.csv"), index=False)
         print(f"  Resultados → {organism_name}_full_results.csv\n")

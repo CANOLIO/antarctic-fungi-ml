@@ -1,29 +1,31 @@
 import os
+import json
 import pandas as pd
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')   # Sin display (compatible con entornos sin GUI)
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 import joblib
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.metrics import roc_curve, auc
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 # ─── RUTAS ────────────────────────────────────────────────────────────────────
-DATA_FILE   = os.path.join("data", "processed", "dataset_features.csv")
-MODELS_DIR  = os.path.join("results", "models")
-FIGURES_DIR = os.path.join("results", "figures")
-REPORT_FILE = os.path.join("results", "top15_bioprospecting_report.csv")
+DATA_FILE     = os.path.join("data", "processed", "dataset_features.csv")
+MANIFEST_FILE = os.path.join("results", "models", "split_manifest.json")
+MODELS_DIR    = os.path.join("results", "models")
+FIGURES_DIR   = os.path.join("results", "figures")
+REPORT_FILE   = os.path.join("results", "top15_bioprospecting_report.csv")
 os.makedirs(FIGURES_DIR, exist_ok=True)
 
-META_COLS = ['Protein_ID', 'Organism_Source', 'EC_Class', 'Thermal_Class']
+META_COLS = ['Protein_ID', 'Organism_Source', 'Taxon_ID', 'T_opt_C',
+             'Organism_Resolved', 'EC_Class', 'Thermal_Class']
 
-# ─── ESTILO GLOBAL ────────────────────────────────────────────────────────────
 sns.set_theme(style="whitegrid", palette="muted", font_scale=1.1)
-COLD_COLOR = "#4a90d9"   # Azul frío
-WARM_COLOR = "#e07b54"   # Naranja cálido
+COLD_COLOR = "#4a90d9"
+WARM_COLOR = "#e07b54"
 
 
 def load_threshold() -> float:
@@ -35,60 +37,99 @@ def load_threshold() -> float:
     return 0.5
 
 
+def load_manifest() -> dict:
+    """
+    FIX: la Fig A (ROC) evaluaba el modelo sobre TODO el dataset —incluyendo
+    las proteínas con las que fue entrenado— lo que da un AUC artificialmente
+    perfecto (evaluación in-sample). Ahora se carga el manifiesto de split
+    por organismo generado por 05_train_model.py y la ROC se calcula
+    ÚNICAMENTE sobre las proteínas de test (organismos nunca vistos en train).
+    """
+    if not os.path.exists(MANIFEST_FILE):
+        raise FileNotFoundError(
+            f"No existe {MANIFEST_FILE}. Corre primero 05_train_model.py (v4) "
+            f"— sin el manifiesto no hay forma de saber qué proteínas son "
+            f"realmente held-out, y evaluar sobre todo el dataset da un AUC "
+            f"in-sample (inflado, no representa generalización real)."
+        )
+    with open(MANIFEST_FILE) as f:
+        return json.load(f)
+
+
 def generate_figures():
     print("\n" + "=" * 65)
-    print("  PsychroScan — Figuras de Validación (v2)")
+    print("  PsychroScan — Figuras de Validación (v3)")
+    print("  Fig A ahora se evalúa SOLO en organismos held-out (antes: dataset completo)")
     print("=" * 65 + "\n")
 
-    print("  Cargando datos y modelo...")
-    df    = pd.read_csv(DATA_FILE)
-    model = joblib.load(os.path.join(MODELS_DIR, "optuna_f2_model.pkl"))
-    thresh = load_threshold()
+    print("  Cargando datos, modelo y manifiesto de split...")
+    df       = pd.read_csv(DATA_FILE)
+    model    = joblib.load(os.path.join(MODELS_DIR, "optuna_f2_model.pkl"))
+    thresh   = load_threshold()
+    manifest = load_manifest()
 
-    feat_cols     = [c for c in df.columns if c not in META_COLS]
-    X             = df[feat_cols].astype('float32')
-    y             = df['Thermal_Class'].values          # 0=Cold, 1=Warm
+    feat_cols = [c for c in df.columns if c not in META_COLS]
 
-    probs_cold    = model.predict_proba(X)[:, 0]        # P(Cold)
-    y_cold_binary = (1 - y)                             # 1=Cold para ROC
+    test_ids = set(manifest['test_protein_ids'])
+    df_test  = df[df['Protein_ID'].isin(test_ids)].reset_index(drop=True)
+    if len(df_test) == 0:
+        raise ValueError(
+            "0 filas coinciden con test_protein_ids del manifiesto. "
+            "¿Estás usando el mismo dataset_features.csv con el que se entrenó?"
+        )
+    print(f"  Test set (held-out, {len(manifest['test_organisms'])} organismos "
+          f"nunca vistos en train): {len(df_test):,} proteínas")
 
-    # ── FIGURA A: Curva ROC ───────────────────────────────────────────────────
-    print("  Generando Fig A — Curva ROC...")
-    fpr, tpr, _ = roc_curve(y_cold_binary, probs_cold)
+    X_test        = df_test[feat_cols].astype('float32')
+    y_test         = df_test['Thermal_Class'].values
+    probs_cold_te  = model.predict_proba(X_test)[:, 0]
+    y_cold_te      = (1 - y_test)
+
+    # ── FIGURA A: Curva ROC — SOLO sobre test held-out por organismo ──────────
+    print("  Generando Fig A — Curva ROC (held-out por organismo)...")
+    fpr, tpr, _ = roc_curve(y_cold_te, probs_cold_te)
     roc_auc     = auc(fpr, tpr)
 
     fig, ax = plt.subplots(figsize=(7, 6))
     ax.plot(fpr, tpr, color=COLD_COLOR, lw=2.5,
-            label=f'Clasificador PsychroScan (AUC = {roc_auc:.3f})')
+            label=f'Clasificador PsychroScan (AUC = {roc_auc:.3f}, held-out)')
     ax.plot([0, 1], [0, 1], color='gray', lw=1.5, linestyle='--', label='Aleatorio (AUC = 0.500)')
     ax.fill_between(fpr, tpr, alpha=0.08, color=COLD_COLOR)
     ax.set_xlim([0, 1]); ax.set_ylim([0, 1.02])
     ax.set_xlabel('Tasa de Falsos Positivos (1 − Especificidad)', fontsize=12)
     ax.set_ylabel('Tasa de Verdaderos Positivos (Sensibilidad)', fontsize=12)
-    ax.set_title('Figura A — Rendimiento del Clasificador de Enzimas Frías', fontsize=13)
+    ax.set_title(f'Figura A — Rendimiento en {len(manifest["test_organisms"])} '
+                 f'organismos nunca vistos en entrenamiento', fontsize=12)
     ax.legend(loc='lower right', fontsize=11)
     ax.grid(alpha=0.3)
 
     if roc_auc >= 0.85:
         ax.text(0.55, 0.12, f'✓ Nivel publicable (AUC ≥ 0.85)',
                 fontsize=10, color='green', transform=ax.transAxes)
+    else:
+        ax.text(0.55, 0.12, f'AUC held-out < 0.85', fontsize=10,
+                color='#b02a2a', transform=ax.transAxes)
 
     fig.savefig(os.path.join(FIGURES_DIR, '08A_ROC_Curve.png'),
                 dpi=300, bbox_inches='tight')
     plt.close(fig)
-    print(f"     AUC = {roc_auc:.4f}")
+    print(f"     AUC (held-out por organismo) = {roc_auc:.4f}")
+    print(f"     (para referencia, manifiesto reporta {manifest['auc_organism_holdout']:.4f} "
+          f"desde 05_train_model.py — deberían coincidir)")
 
-    # ── FIGURA B: PCA ─────────────────────────────────────────────────────────
-    print("  Generando Fig B — PCA del espacio proteómico...")
+    # ── FIGURA B: PCA — no-supervisado, se mantiene sobre dataset completo ────
+    # (No es un problema de leakage: PCA no usa el modelo entrenado ni evalúa
+    # su rendimiento, solo visualiza la estructura del espacio de features.)
+    print("  Generando Fig B — PCA del espacio proteómico (dataset completo, no-supervisado)...")
     n_sample = min(20_000, len(df))
     df_pca   = df.sample(n=n_sample, random_state=42)
     X_pca    = df_pca[feat_cols].astype('float32')
     y_pca    = df_pca['Thermal_Class'].values
 
-    scaler = StandardScaler()
-    pcs    = PCA(n_components=2).fit_transform(scaler.fit_transform(X_pca))
-    pca_obj = PCA(n_components=2).fit(scaler.fit_transform(X_pca))   # para varianza
-
+    scaler  = StandardScaler()
+    X_scaled = scaler.fit_transform(X_pca)
+    pca_obj = PCA(n_components=2).fit(X_scaled)
+    pcs     = pca_obj.transform(X_scaled)
     explained = pca_obj.explained_variance_ratio_ * 100
 
     fig, ax = plt.subplots(figsize=(9, 7))
@@ -107,17 +148,15 @@ def generate_figures():
                 dpi=300, bbox_inches='tight')
     plt.close(fig)
 
-    # ── FIGURA C: Boxplot Gly / Ser / Pro ─────────────────────────────────────
+    # ── FIGURA C: Boxplot Gly / Ser / Pro — dataset completo, comparación cruda ─
+    # (Tampoco es leakage: compara composición aminoacídica anotada, no
+    # predicciones del modelo. Pero recuerda: el test estadístico válido para
+    # esto vive ahora en mann_whitney_fig6.py a nivel de organismo.)
     print("  Generando Fig C — Firma aminoacídica (Gly, Ser, Pro)...")
-    df['Cold_Prob'] = probs_cold
-
-    # Comparación directa por Thermal_Class anotada (no por umbral del modelo)
-    # Esto evita sesgo de clasificación y refleja el dataset de entrenamiento real.
-    n_sample = min(5000, (df['Thermal_Class'] == 0).sum(),
-                         (df['Thermal_Class'] == 1).sum())
-    top_cold = df[df['Thermal_Class'] == 0].sample(n=n_sample, random_state=42).copy()
+    n_sample_c = min(5000, (df['Thermal_Class'] == 0).sum(), (df['Thermal_Class'] == 1).sum())
+    top_cold = df[df['Thermal_Class'] == 0].sample(n=n_sample_c, random_state=42).copy()
     top_cold['Grupo'] = 'Cold Enzymes (Class 0)'
-    meso = df[df['Thermal_Class'] == 1].sample(n=n_sample, random_state=42).copy()
+    meso = df[df['Thermal_Class'] == 1].sample(n=n_sample_c, random_state=42).copy()
     meso['Grupo'] = 'Mesophilic Enzymes (Class 1)'
 
     cmp_df = pd.concat([top_cold, meso])
@@ -135,7 +174,8 @@ def generate_figures():
                 data=melted, palette={'Cold Enzymes (Class 0)': COLD_COLOR,
                                       'Mesophilic Enzymes (Class 1)': WARM_COLOR},
                 showfliers=False, ax=ax, width=0.5)
-    ax.set_title('Figure C — Amino Acid Composition Signature\n(Cold vs. Mesophilic Enzymes, annotated Thermal_Class)', fontsize=12)
+    ax.set_title('Figure C — Amino Acid Composition Signature\n'
+                 '(Cold vs. Mesophilic Enzymes, annotated Thermal_Class)', fontsize=12)
     ax.set_xlabel('')
     ax.set_ylabel('Fraction in Sequence (%)', fontsize=12)
     ax.legend(title='Group', fontsize=11)
@@ -146,29 +186,22 @@ def generate_figures():
 
     # ── FIGURA D: Lollipop Top 15 con Pfam ────────────────────────────────────
     print("  Generando Fig D — Top 15 candidatas con anotación Pfam...")
-
     if not os.path.exists(REPORT_FILE):
         print("    ⚠️  top15_bioprospecting_report.csv no encontrado.")
         print("       Corre primero 07_biological_annotation.py para generar la Fig D.")
     else:
         rep = pd.read_csv(REPORT_FILE)
         rep = rep.sort_values('P_Cold', ascending=True)
-
-        # Etiqueta corta para el eje Y
         rep['Label'] = rep.apply(
             lambda r: f"{r['Protein_ID'][:18]}  [{r['EC_Class'][:8]}]", axis=1
         )
         rep['Has_Pfam'] = rep['Pfam_Domains'] != 'Sin dominios Pfam'
         rep['P_Cold_num'] = rep['P_Cold'].str.replace('%', '').astype(float)
-
         colors_d = [COLD_COLOR if hpf else '#adb5bd' for hpf in rep['Has_Pfam']]
 
         fig, ax = plt.subplots(figsize=(11, 8))
-        ax.hlines(y=rep['Label'], xmin=0, xmax=rep['P_Cold_num'],
-                  color='#dee2e6', linewidth=2)
-        ax.scatter(rep['P_Cold_num'], rep['Label'],
-                   c=colors_d, s=90, zorder=5)
-
+        ax.hlines(y=rep['Label'], xmin=0, xmax=rep['P_Cold_num'], color='#dee2e6', linewidth=2)
+        ax.scatter(rep['P_Cold_num'], rep['Label'], c=colors_d, s=90, zorder=5)
         ax.set_xlabel('P(Cold) — Probabilidad de Adaptación al Frío (%)', fontsize=12)
         ax.set_title('Figura D — Top 15 Candidatas Industriales\n'
                      'Azul = con dominio Pfam catalítico  |  Gris = sin Pfam', fontsize=13)
@@ -181,8 +214,7 @@ def generate_figures():
                     dpi=300, bbox_inches='tight')
         plt.close(fig)
         print(f"     {rep['Has_Pfam'].sum()}/15 proteínas con dominio Pfam graficadas.")
-    
-    # ── Resumen ───────────────────────────────────────────────────────────────
+
     print()
     print("=" * 65)
     print("  FIGURAS GENERADAS")
