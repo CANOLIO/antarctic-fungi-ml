@@ -141,7 +141,7 @@ def generate_figures():
     ax.legend(handles=[cold_patch, warm_patch], loc='upper right', fontsize=11)
     ax.set_xlabel(f'PC1 ({explained[0]:.1f}% variance explained)', fontsize=12)
     ax.set_ylabel(f'PC2 ({explained[1]:.1f}% variance explained)', fontsize=12)
-    ax.set_title('Figure 3 — PCA of Proteome Feature Space\n'
+    ax.set_title('Figure 2 — PCA of Proteome Feature Space\n'
                  '(Colored by Thermal Class)', fontsize=13)
 
     fig.savefig(os.path.join(FIGURES_DIR, '08B_PCA_Space.png'),
