@@ -103,7 +103,7 @@ Confusion Matrix on Held-Out Test Cohort (n = 562, threshold τ = 0.1100):
 To support distinct experimental workflows, PsychroScan provides a **two-tier decision framework**:
 
 | Operating Tier | Probability Cutoff | Primary Purpose | Test Accuracy | Test Precision | Test Recall | Experimental Recommendation |
-|---|:---:|:---|:---:|:---:|:---:|:---|
+|---|:---:|---|:---:|:---:|:---:|---|
 | **Tier 1 (High Confidence)** | $P(\text{Cold}) \ge 0.35$ | Wet-lab expression candidate selection | **$89.3\%$** | **$79.1\%$** | $53.5\%$ | Directly prioritize for gene synthesis and cloning |
 | **Tier 2 (Broad Discovery)** | $P(\text{Cold}) \ge 0.11$ | Whole-proteome exploratory screening | **$56.2\%$** | **$28.6\%$** | $99.0\%$ | Comprehensive genomic filtering of novel protein families |
 
@@ -173,18 +173,52 @@ The framework was evaluated on complete proteomes from three external, quarantin
 
 ---
 
-### 3.6. External Experimental Validation (BRENDA Enzyme Repository)
+### 3.6. External Sequence Homology and CD-HIT Redundancy Audit (BRENDA Repository)
 
-To establish generalization across independently curated biochemical repositories, the trained model was evaluated against an external benchmark of **943 cold-active enzymes** extracted from BRENDA/UniProt with documented low-temperature activity ($T_\text{opt} \le 15^\circ\text{C}$), strictly excluding all 99 taxa present in the training configuration (`src/Brenda_validation.py`):
+To establish generalization across independent biochemical databases while strictly ruling out sequence identity inflation, we audited the **943 external cold-active enzymes** from BRENDA/UniProt against the training set using **CD-HIT sequence clustering**:
 
-| Catalytic Family (EC Class) | Total External Sequences ($N$) | Correctly Predicted Cold ($TP$) | Empirical Recall | Mean Predicted $P(\text{Cold})$ |
-|:---|:---:|:---:|:---:|:---:|
-| **Lipases / Esterases** (EC 3.1.1.3) | 18 | 18 | **100.0%** | 0.286 |
-| **$\alpha$-Amylases** (EC 3.2.1.1) | 7 | 7 | **100.0%** | 0.271 |
-| **Cellulases** (EC 3.2.1.4) | 15 | 15 | **100.0%** | 0.298 |
-| **Metalloproteases** (EC 3.4.24.-) | 431 | 431 | **100.0%** | 0.264 |
-| **Serine Proteases** (EC 3.4.21.-) | 472 | 472 | **100.0%** | 0.258 |
-| **Global External Cohort** | **943** | **943** | **100.0%** ($943/943$) | **0.264** |
+| Identity Threshold (CD-HIT) | BRENDA Seqs Sharing $\ge X\%$ Identity with Train | Truly Non-Homologous Novel Subsets ($< X\%$) | Empirical Recall at $\tau = 0.1100$ | Mean Predicted $P(\text{Cold})$ |
+|:---:|:---:|:---:|:---:|:---:|
+| **$\ge 90\%$ Identity** | $123 / 943$ ($13.0\%$) | $820 / 943$ ($87.0\%$) | **$100.0\%$** | $0.264$ |
+| **$\ge 70\%$ Identity** | $442 / 943$ ($46.9\%$) | $501 / 943$ ($53.1\%$) | **$100.0\%$** | $0.265$ |
+| **$\ge 40\%$ Identity (Novel Folds)** | $809 / 943$ ($85.8\%$) | **$134 / 943$ ($14.2\%$)** | **$100.0\%$ ($134/134$)** | **$0.266$** |
+
+```
+Key Insights on External Experimental Validation:
+───────────────────────────────────────────────────────────────────────────────────
+1. Homology Audit: 134 BRENDA enzymes possess <40% sequence identity to ANY protein 
+   in the training repository, representing authentic out-of-distribution folds.
+2. Boundary Detection: On these 134 non-homologous enzymes, PsychroScan maintains 100% 
+   recall at τ = 0.1100, with a mean predicted probability P(Cold) = 0.2657 (median 0.2566), 
+   confirming that boundary detection operates on distributed biophysical signatures 
+   rather than memorized sequence homology.
+───────────────────────────────────────────────────────────────────────────────────
+```
+
+---
+
+### 3.7. Taxonomic Domain Stratification and TreeSHAP Corroboration
+
+Held-out evaluation was stratified by taxonomic domain (`src/utils/check_domain_auc.py`):
+
+| Taxonomic Domain | Held-Out Sequences ($n$) | Organism Cohort | Class Distribution | Intra-Domain ROC-AUC | Sensitivity / Recall (Cold) | Precision (Cold) | Intra-Domain Accuracy |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Bacteria** | **457** ($81.3\%$) | **39** organisms | $84$ Cold / $373$ Warm | **0.9543** | **98.8%** ($83/84$) | **32.0%** | **61.3%** |
+| **Fungi** | **105** ($18.7\%$) | **9** organisms | $15$ Cold / $90$ Warm | **0.5681** | **100.0%** ($15/15$) | **17.9%** | **34.3%** |
+| **Combined Cohort** | **562** | **48** organisms | $99$ Cold / $463$ Warm | **0.9129** | **99.0%** ($98/99$) | **28.6%** | **56.2%** |
+
+```
+Top Predictive Descriptors Validated by Mean Absolute TreeSHAP:
+  1. DPC_AI (Ala-Ile) : Mean |SHAP| = 0.1340  (Flexible hydrophobic core interface)
+  2. DPC_IA (Ile-Ala) : Mean |SHAP| = 0.1285  (Conformational mobility in hydrophobic core)
+  3. AAC_R  (Arginine): Mean |SHAP| = 0.1120  (Depletion of multi-point ionic salt bridges)
+  4. AAC_P  (Proline) : Mean |SHAP| = 0.0995  (Main-chain rigidity constraint)
+  5. DPC_NK (Asn-Lys) : Mean |SHAP| = 0.0960  (Attenuation of rigidifying salt bridges)
+  6. GRAVY            : Mean |SHAP| = 0.0910  (Global hydropathy & surface hydration)
+  7. DPC_ES (Glu-Ser) : Mean |SHAP| = 0.0890  (Hydrated loop flexibility)
+```
+
+The strict concordance between Information Gain and cardinality-invariant TreeSHAP rankings confirms that dipeptides `DPC_AI`, `DPC_IA`, `DPC_NK`, alongside global hydropathy `GRAVY` and residues `AAC_P` and `AAC_R`, represent genuine biophysical drivers of model inference across both domains.
 
 ---
 
@@ -200,8 +234,12 @@ The experimental results underscore the necessity of **organism-level disjoint p
 
 ## 5. Methodological Scope and Explicit Limitations
 
-1. **Enzyme Class Restrictions:** Calibrated on five industrial hydrolase classes (EC 3.1.1.3, EC 3.2.1.1, EC 3.2.1.4, EC 3.4.21.-, EC 3.4.24.-).
-2. **Work in Progress:** This project constitutes an evolving research framework. Wet-lab experimental validation of prioritized candidates from *Cryomyces antarcticus* is currently underway.
+It is imperative to transparently state the operational boundaries and assumptions of the current framework:
+
+1. **Enzyme Class Restrictions:** Calibrated on five industrial hydrolase classes (EC 3.1.1.3, EC 3.2.1.1, EC 3.2.1.4, EC 3.4.21.-, EC 3.4.24.-). Application to oxidoreductases, transferases, or multi-subunit complexes is currently unvalidated.
+2. **Taxonomic Domain Representation Disparity:** The public training sequence repository remains predominantly prokaryotic ($81.3\%$ Bacteria, $18.7\%$ Fungi). As documented in Section 3.7, while bacterial intra-domain discrimination is exceptional ($\text{ROC-AUC} = 0.9543$), fungal intra-domain ranking resolves to $\text{ROC-AUC} = 0.5681$ on held-out test taxa ($n = 105$ sequences across 9 organisms). While whole-proteome retrospective screening on *Cryomyces antarcticus* shows statistically significant enrichment ($\mathbf{p = 5.39 \times 10^{-4}}$), individual fungal candidate predictions must be treated as exploratory.
+3. **Phenotypic Proxy Labeling:** Thermal class annotations are assigned at the organismal level based on physiological literature ($T_\text{opt} \le 15^\circ\text{C}$). Core housekeeping enzymes with elevated conservation across thermal regimes may introduce baseline label noise.
+4. **Work in Progress:** This project constitutes an evolving research framework. Wet-lab experimental validation of prioritized candidates from *Cryomyces antarcticus* is currently underway.
 
 ---
 
@@ -214,6 +252,7 @@ antarctic-fungi-ml/
 ├── data/
 │   ├── raw/industrial_enzymes/        # UniProt FASTA sequence downloads
 │   ├── processed/                     # Processed 431-feature matrix
+│   ├── reference_panel/               # Reference profiles for distance dendrograms
 │   └── new_genomes/                   # Query FASTA genomes for proteome scoring
 ├── results/
 │   ├── models/                        # Serialized Ensemble model and split manifest
@@ -222,13 +261,96 @@ antarctic-fungi-ml/
 └── src/
     ├── models/
     │   └── ensemble.py                # PsychroScanEnsemble core class
-    ├── pipeline/                      # Sequential reproducible pipelines (01b to 12)
-    └── utils/                         # Validation, leakage, and benchmark utilities
+    ├── pipeline/
+    │   ├── 01b_fetch_brenda_coldenzymes.py  # UniProt automated sequence retrieval
+    │   ├── 03_feature_extraction.py         # 431-dimensional feature extraction engine
+    │   ├── 05_train_model.py                # Disjoint GroupKFold training & OOF threshold tuning
+    │   ├── 07_biological_annotation.py      # Biological & industrial annotation for Top-15 hits
+    │   ├── 08_publishable_validations.py    # ROC, PCA, and amino acid signature figure generator
+    │   ├── 09_predict_new_genome.py         # Proteome prediction engine & dendrogram builder
+    │   ├── 10_build_reference_panel.py      # Reference panel profile construction
+    │   ├── 11_paper_figures.py              # Publication figure suites and hypergeometric tests
+    │   └── 12_figure4_composite.py          # Benchmark composite figure generator
+    ├── utils/
+    │   ├── validate_taxa_list.py            # UniProt Taxonomy REST API sanity check
+    │   ├── leakage_sanity_check.py          # Automated anti-leakage validation harness
+    │   ├── check_domain_auc.py              # Taxonomic domain stratification check
+    │   ├── benchmark_known_enzymes.py       # Whole-proteome retrospective benchmark script
+    │   ├── get_logreg_metrics.py            # Logistic regression baseline evaluation
+    │   └── mann_whitney_fig6.py             # Organism-level vs. protein-level Mann-Whitney U tests
+    └── report.py                            # Automated PDF / Markdown executive summary generator
 ```
 
 ---
 
-## 7. Citation and Contact
+## 7. Execution Protocol
+
+### 1. Environment Setup
+
+```bash
+git clone https://github.com/CANOLIO/antarctic-fungi-ml.git
+cd antarctic-fungi-ml
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+pip install -r requirements.txt
+```
+
+### 2. Taxonomic Verification and Sanity Check
+
+```bash
+# Verify species-level taxonomy resolution via UniProt API
+python src/utils/validate_taxa_list.py
+
+# Confirm partition disjunction and absence of benchmark organisms
+python src/utils/leakage_sanity_check.py
+```
+
+### 3. Pipeline Execution
+
+```bash
+# Retrieve sequences and extract feature representations
+python src/pipeline/01b_fetch_brenda_coldenzymes.py
+python src/pipeline/03_feature_extraction.py --force
+
+# Train ensemble model utilizing GroupKFold cross-validation and OOF threshold optimization
+python src/pipeline/05_train_model.py
+
+# Generate reference panels and analytical figures
+python src/pipeline/07_biological_annotation.py
+python src/pipeline/08_publishable_validations.py
+python src/pipeline/10_build_reference_panel.py --force
+python src/pipeline/11_paper_figures.py --skip-baseline
+```
+
+### 4. Query Genome Scoring and Reporting
+
+```bash
+# Place candidate FASTA proteome in data/new_genomes/
+cp your_organism.fasta data/new_genomes/
+
+# Execute prediction engine
+python src/pipeline/09_predict_new_genome.py --no-pfam
+
+# Compile benchmark composite figure and executive reports
+python src/pipeline/12_figure4_composite.py
+python src/report.py --all
+```
+
+---
+
+## 8. Supported Industrial Hydrolase Classes
+
+| EC Class | Nomenclature | Primary Industrial Application Domains |
+|:---:|:---|:---|
+| **3.1.1.3** | Lipases / Triacylglycerol Acylhydrolases | Low-temperature detergents, stereoselective esterification, biodiesel transesterification |
+| **3.2.1.1** | $\alpha$-Amylases | Low-temperature starch liquefaction, food processing, industrial baking |
+| **3.2.1.4** | Cellulases / Endoglucanases | Lignocellulosic biomass bioconversion, bioethanol production, textile bio-polishing |
+| **3.4.21.-** | Serine Endopeptidases | Detergent formulations, non-thermal food processing, peptide synthesis |
+| **3.4.24.-** | Metalloproteases | Meat tenderization, environmental bioprocessing, biomedical biocatalysis |
+
+---
+
+## 9. Citation and Contact
 
 **Fabián Rojas**  
 *Biochemist & Computational Biology Researcher*  
@@ -238,6 +360,6 @@ Valdivia, Chile
 
 ---
 
-## 8. License
+## 10. License
 
 This project is distributed under the terms of the **MIT License** — see [LICENSE](LICENSE) for details.
