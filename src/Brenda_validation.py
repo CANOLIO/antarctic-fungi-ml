@@ -79,18 +79,26 @@ def query_uniprot_cold_enzymes(ec_query, ec_class, max_results=500):
         "size":     max_results,
         "fields":   "accession,organism_name,protein_name,ec",
     }
-    try:
-        resp = requests.get(UNIPROT_REST, params=params, timeout=60)
-        if resp.status_code == 200 and resp.text.strip():
-            records = list(SeqIO.parse(StringIO(resp.text), "fasta"))
-            print(f"    {ec_class}: {len(records)} secuencias descargadas")
-            return records
-        else:
-            print(f"    {ec_class}: sin resultados (status {resp.status_code})")
-            return []
-    except Exception as e:
-        print(f"    {ec_class}: error — {e}")
-        return []
+    for attempt in range(4):
+        try:
+            resp = requests.get(UNIPROT_REST, params=params, timeout=60)
+            if resp.status_code == 200 and resp.text.strip():
+                records = list(SeqIO.parse(StringIO(resp.text), "fasta"))
+                print(f"    {ec_class}: {len(records)} secuencias descargadas")
+                return records
+            elif resp.status_code == 200:
+                print(f"    {ec_class}: sin resultados")
+                return []
+            else:
+                if attempt == 3:
+                    print(f"    {ec_class}: sin resultados (status {resp.status_code})")
+                    return []
+        except Exception as e:
+            if attempt == 3:
+                print(f"    {ec_class}: error — {e}")
+                return []
+            time.sleep(2.0 * (attempt + 1))
+    return []
 
 
 def filter_external_sequences(records, training_ids, training_taxa):

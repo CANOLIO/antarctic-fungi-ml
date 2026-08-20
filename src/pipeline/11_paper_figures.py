@@ -88,9 +88,23 @@ def load_model_and_data():
 def fig_feature_importance(model, feat_cols):
     print("  Generando Fig E — Feature Importance...")
 
-    importances = model.feature_importances_
+    if hasattr(model, 'feature_importances_'):
+        importances = model.feature_importances_
+        features = feat_cols
+    elif hasattr(model, 'm_lgb') and hasattr(model, 'selector') and model.selector is not None:
+        sel_mask = model.selector.get_support()
+        sel_features = [f for f, s in zip(feat_cols, sel_mask) if s]
+        importances = model.m_lgb.feature_importances_
+        features = sel_features
+    elif hasattr(model, 'm_lgb'):
+        importances = model.m_lgb.feature_importances_
+        features = feat_cols
+    else:
+        importances = np.zeros(len(feat_cols))
+        features = feat_cols
+
     feat_df = pd.DataFrame({
-        'Feature':    feat_cols,
+        'Feature':    features,
         'Importance': importances,
     }).sort_values('Importance', ascending=False).head(30)
 
