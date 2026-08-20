@@ -93,12 +93,14 @@ Confusion Matrix on Held-Out Test Cohort (n = 621, threshold τ = 0.1045):
 
 ---
 
-### 3.2. Proteome Feature Space and Unsupervised Clustering
+### 3.2. Proteomic Feature Space and Dimensionality Analysis
 
-Principal Component Analysis (PCA) of the 431-dimensional feature matrix demonstrates a continuous biophysical distribution where psychrophilic hydrolases occupy a distinct subspace characterized by lower structural rigidity and shifted electrostatic profiles:
+Principal Component Analysis (PCA) across the 431-dimensional descriptor space demonstrates substantial linear overlap in the first two principal axes ($\text{PC1} \approx 5.4\%$, $\text{PC2} \approx 4.4\%$, accounting for $<10\%$ cumulative variance). Because 400 of the 431 features represent sparse dipeptide frequency terms distributed across a high-dimensional manifold, linear orthogonal projections cannot linearly separate thermal phenotypes in low-dimensional space:
 
 ![Figure 2: PCA of Proteomic Space](examples/figures/08B_PCA_Space.png)  
-*Figure 2: Unsupervised Principal Component Analysis (PCA) of the complete curated dataset ($N = 3,178$) across 431 biophysical descriptors.*
+*Figure 2: Unsupervised Principal Component Analysis (PCA) of the curated dataset ($N = 3,178$) across 431 biophysical descriptors. The low variance explained ($\text{PC1}+\text{PC2} < 10\%$) and extensive linear overlap indicate that cold adaptation signatures are high-dimensional, distributed, and fundamentally non-linear.*
+
+This absence of low-dimensional linear separation provides a compelling methodological justification for the architecture: thermal adaptation is governed by distributed combinatorial motifs rather than global linear shifts, explaining why non-linear gradient-boosted decision tree ensembles (LightGBM, $\text{ROC-AUC} = 0.8761$) substantially outperform linear baseline models (Logistic Regression, $\text{ROC-AUC} = 0.7985$).
 
 ---
 
@@ -190,6 +192,9 @@ The experimental results underscore the necessity of **organism-level disjoint p
 
 ### 4.3. The Sensitivity-Precision Trade-off in Bioprospecting
 By optimizing decision boundaries for $F_2$-score ($\beta = 2.0$), the model achieves **$96.9\%$ sensitivity** ($187$ out of $193$ true cold enzymes captured) on held-out taxa at a precision of $47.0\%$. In industrial biotechnology, the commercial value of identifying an authentic, highly active cold enzyme warrants screening modest false-positive rates, whereas discarding a candidate due to an overly conservative decision boundary constitutes an irreversible loss.
+
+### 4.4. High-Dimensionality and Non-Linearity of Adaptation Signatures
+The low cumulative variance accounted for by the first two principal components in linear PCA ($\text{PC1}+\text{PC2} < 10\%$) confirms that psychrophilic adaptation cannot be collapsed into an elementary linear combination of global residue frequencies. Instead, adaptation emerges from subtle, distributed dipeptide frequencies and localized conformational flexibility. Consequently, linear models (e.g., Logistic Regression, $\text{ROC-AUC} = 0.7985$) plateau in discriminative power, whereas non-linear gradient-boosted decision trees effectively synthesize these high-dimensional interaction manifolds ($\text{ROC-AUC} = 0.8761$).
 
 ---
 
