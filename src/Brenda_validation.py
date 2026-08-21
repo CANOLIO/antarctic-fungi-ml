@@ -182,6 +182,15 @@ def _extract_features_inline(sequences):
             row["CvP_Bias"]          = charged - polar
             row["Flexibility_Ratio"] = gly_ser / pro
 
+            # PTM proxy features
+            import re
+            slen = len(seq_clean)
+            n_glyco_matches = len(re.findall(r'N[^P][ST]', seq_clean))
+            row["N_Glyco_Density"] = (n_glyco_matches / max(slen, 1)) * 100.0
+            n_term = seq_clean[:min(25, slen)]
+            row["N_Terminal_Hydrophobicity"] = sum(1 for aa in n_term if aa in set("LIVAFMW")) / max(len(n_term), 1)
+            row["Cys_Pair_Density"] = (seq_clean.count('C') // 2) / max(slen, 1) * 100.0
+
             row["Protein_ID"]    = pid
             row["Thermal_Class"] = 0
             rows.append(row)

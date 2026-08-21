@@ -30,16 +30,22 @@ POLAR_SET    = set("NQST")
 # NUEVO (v4): Taxon_ID, T_opt_C, Organism_Resolved — permiten agrupar por
 # organismo real (GroupKFold / Leave-One-Organism-Out) y validar T_opt_C
 # de forma continua, en vez de depender solo del binario Cold/Warm.
+import re
+
 HEADER = (
     ['Protein_ID', 'Organism_Source', 'Taxon_ID', 'T_opt_C', 'Organism_Resolved',
      'EC_Class', 'Thermal_Class',
      'Length', 'Molecular_Weight', 'GRAVY', 'Instability_Index',
      'Aromaticity', 'Helix_Fraction', 'Turn_Fraction', 'Sheet_Fraction',
      'IVYWREL_Index', 'CvP_Bias', 'Flexibility_Ratio',
+     'N_Glyco_Density', 'N_Terminal_Hydrophobicity', 'Cys_Pair_Density',
      ]
     + [f'AAC_{aa}' for aa in AMINO_ACIDS]
     + [f'DPC_{di}' for di in DIPEPTIDES]
 )
+
+N_GLYCO_PATTERN = re.compile(r'N[^P][ST]')
+HYDROPHOBIC_NTERM = set("LIVAFMW")
 
 
 def compute_thermal_features(seq: str) -> dict:
@@ -53,10 +59,27 @@ def compute_thermal_features(seq: str) -> dict:
     ser_count     = seq.count('S')
     pro_count     = seq.count('P')
     flex_ratio    = (gly_count + ser_count) / (pro_count + 0.001)
+
+    # NUEVAS FEATURES PROXY PTM / SECRECIÓN (Tier 1):
+    # 1. Densidad de motivos N-glicosilación: N-X-[S/T] con X != Pro
+    n_glyco_matches = len(N_GLYCO_PATTERN.findall(seq))
+    n_glyco_density = (n_glyco_matches / max(slen, 1)) * 100.0
+
+    # 2. Heurística de péptido señal / hidrofobicidad N-terminal (primeros 25 residuos)
+    n_term = seq[:min(25, slen)]
+    n_term_hydro = sum(1 for aa in n_term if aa in HYDROPHOBIC_NTERM) / max(len(n_term), 1)
+
+    # 3. Densidad de pares de Cisteína (potencial puente disulfuro)
+    cys_count = seq.count('C')
+    cys_pair_density = (cys_count // 2) / max(slen, 1) * 100.0
+
     return {
-        'IVYWREL_Index':     ivywrel_index,
-        'CvP_Bias':          cvp_bias,
-        'Flexibility_Ratio': flex_ratio,
+        'IVYWREL_Index':              ivywrel_index,
+        'CvP_Bias':                   cvp_bias,
+        'Flexibility_Ratio':          flex_ratio,
+        'N_Glyco_Density':            n_glyco_density,
+        'N_Terminal_Hydrophobicity':  n_term_hydro,
+        'Cys_Pair_Density':           cys_pair_density,
     }
 
 
