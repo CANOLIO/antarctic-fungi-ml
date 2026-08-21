@@ -74,7 +74,8 @@ def get_test_df(manifest: dict) -> pd.DataFrame:
     test_df = df[df['Protein_ID'].isin(test_ids)][
         ['Protein_ID', 'Thermal_Class', 'EC_Class', 'Organism_Source']
     ].reset_index(drop=True)
-    print(f"  Test set (organismos held-out, {len(manifest['test_organisms'])} organismos): "
+    n_spp = len(manifest.get('test_species', manifest.get('test_organisms', [])))
+    print(f"  Test set (especies held-out, {n_spp} especies): "
           f"{len(test_df):,} proteínas "
           f"(Cold={(test_df['Thermal_Class']==0).sum():,}, "
           f"Warm={(test_df['Thermal_Class']==1).sum():,})")
@@ -173,7 +174,9 @@ def main():
     manifest = load_manifest()
     test_df  = get_test_df(manifest)
 
-    train_protein_ids = set(manifest['train_protein_ids'])
+    all_df = pd.read_csv(DATA_FILE)
+    test_ids = set(manifest['test_protein_ids'])
+    train_protein_ids = set(all_df[~all_df['Protein_ID'].isin(test_ids)]['Protein_ID'])
     build_blast_db(train_protein_ids)
 
     query_fasta, _ = extract_test_fasta(test_df)

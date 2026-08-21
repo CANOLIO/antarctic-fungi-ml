@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+import subprocess
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
@@ -14,7 +15,6 @@ from sklearn.model_selection import train_test_split, GroupKFold
 from sklearn.metrics import (classification_report, fbeta_score, f1_score,
                               roc_auc_score, confusion_matrix, precision_score,
                               recall_score, accuracy_score)
-from sklearn.utils import resample
 
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
@@ -29,14 +29,21 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 
 # ─── PARÁMETROS ───────────────────────────────────────────────────────────────
 RANDOM_STATE        = 42
-TOP15_MAX_PER_EC    = 5
 N_GROUP_FOLDS       = 5
 TEST_ORG_FRACTION   = 0.20
 
 META_COLS  = ['Protein_ID', 'Organism_Source', 'Taxon_ID', 'T_opt_C',
               'Organism_Resolved', 'EC_Class', 'Thermal_Class']
 TARGET_COL = 'Thermal_Class'
-GROUP_COL  = 'Organism_Source'
+GROUP_COL  = 'Species_Group'
+
+
+def get_species_name(org_str):
+    s = str(org_str).replace('_', ' ').strip()
+    parts = s.split()
+    if len(parts) >= 2:
+        return f"{parts[0]} {parts[1]}"
+    return s
 
 
 def get_domain(org_str):
@@ -48,53 +55,36 @@ def get_domain(org_str):
 def load_and_balance(data_file):
     print("Cargando dataset de features...")
     df = pd.read_csv(data_file)
-    if GROUP_COL not in df.columns:
-        raise ValueError(f"No existe la columna '{GROUP_COL}' en {data_file}.")
-    df['Is_Fungi'] = df[GROUP_COL].apply(get_domain)
-    n_cold = (df[TARGET_COL] == 0).sum()
-    n_warm = (df[TARGET_COL] == 1).sum()
-    ratio  = n_warm / max(n_cold, 1)
-    print(f"  ❄️  Cold : {n_cold:,}   🌱 Warm : {n_warm:,}   Ratio: {ratio:.1f}x")
-    print(f"  🦠 Bacteria: {(df['Is_Fungi']==0).sum():,}  |  🍄 Fungi: {(df['Is_Fungi']==1).sum():,}")
-    return df
+    df['Species_Group'] = df['Organism_Source'].apply(get_species_name)
+    df['Is_Fungi'] = df['Organism_Source'].apply(get_domain)
 
-
-def split_by_organism(df):
-    organisms = (df[[GROUP_COL, TARGET_COL, 'Is_Fungi']]
-                 .drop_duplicates(subset=GROUP_COL)
-                 .reset_index(drop=True))
-    n_orgs = len(organisms)
-    print(f"\n  Organismos únicos en el dataset: {n_orgs}")
-
-    train_orgs, test_orgs = train_test_split(
-        organisms[GROUP_COL],
-        test_size=TEST_ORG_FRACTION,
-        random_state=RANDOM_STATE,
-        stratify=organisms[TARGET_COL].astype(str) + "_" + organisms['Is_Fungi'].astype(str),
+    # 3-Tier Thermal Governance: Excluir psicrótrofos/ambiguos del entrenamiento y test binario principal
+    psychrotroph_taxa = {'219572', '318456', '365044', '382245', '264483'}
+    is_psychrotroph = (
+        df['Taxon_ID'].astype(str).isin(psychrotroph_taxa) | 
+        df['Organism_Source'].str.contains('antarctica|kishitanii|naphthalenivorans|rhodozyma', case=False, na=False) & (df[TARGET_COL] == 0)
     )
+    
+    # Shewanella oneidensis (Topt=30C) corregida a Warm (Clase 1)
+    df.loc[df['Organism_Source'].str.contains('oneidensis', case=False, na=False), TARGET_COL] = 1
 
-    train_mask = df[GROUP_COL].isin(set(train_orgs))
-    test_mask  = df[GROUP_COL].isin(set(test_orgs))
+    df_primary = df[~is_psychrotroph].copy().reset_index(drop=True)
+    df_psychrotrophs = df[is_psychrotroph].copy().reset_index(drop=True)
+    
+    # Guardar cohort psicrótrofo para análisis de sensibilidad aislado
+    df_psychrotrophs.to_csv(os.path.join(RESULTS_DIR, "psychrotrophs_sensitivity_cohort.csv"), index=False)
 
-    train_df = df[train_mask].reset_index(drop=True)
-    test_df  = df[test_mask].reset_index(drop=True)
-
-    overlap = set(train_df[GROUP_COL]).intersection(set(test_df[GROUP_COL]))
-    assert len(overlap) == 0, f"LEAKAGE CRÍTICO: {len(overlap)} organismos compartidos!"
-
-    feat_cols = [c for c in df.columns if c not in META_COLS and c != 'Is_Fungi']
-    print(f"  Split por organismo (GroupKFold-safe):")
-    print(f"    Train: {len(train_df):,} seqs ({len(train_orgs)} orgs) — "
-          f"Cold: {(train_df[TARGET_COL]==0).sum():,}, Warm: {(train_df[TARGET_COL]==1).sum():,}")
-    print(f"    Test : {len(test_df):,} seqs ({len(test_orgs)} orgs) — "
-          f"Cold: {(test_df[TARGET_COL]==0).sum():,}, Warm: {(test_df[TARGET_COL]==1).sum():,}")
-    print(f"    Features: {len(feat_cols)}")
-
-    return train_df, test_df, feat_cols
+    n_cold = (df_primary[TARGET_COL] == 0).sum()
+    n_warm = (df_primary[TARGET_COL] == 1).sum()
+    ratio  = n_warm / max(n_cold, 1)
+    print(f"  [Primary Binary Cohort - Obligate Psychrophiles vs Mesophiles]")
+    print(f"  ❄️  Cold (Obligate Psychrophiles): {n_cold:,}   🌱 Warm (Mesophiles): {n_warm:,}   Ratio: {ratio:.1f}x")
+    print(f"  🦠 Bacteria: {(df_primary['Is_Fungi']==0).sum():,}  |  🍄 Fungi: {(df_primary['Is_Fungi']==1).sum():,}")
+    print(f"  ⚠️  Quarantined Psychrotrophs (Sensitivity Benchmark): {len(df_psychrotrophs)} seqs")
+    return df_primary, df_psychrotrophs
 
 
-def calibrate_branch_oof(train_df, is_fungi_val, feat_cols, percentile, model_type='bact'):
-    sub_df = train_df[train_df['Is_Fungi'] == is_fungi_val].copy().reset_index(drop=True)
+def calibrate_branch_oof(sub_df, feat_cols, model_type='bact', percentile=30):
     X = sub_df[feat_cols].astype(np.float32)
     y = (sub_df[TARGET_COL] == 0).astype(int).values
     groups = sub_df[GROUP_COL].values
@@ -129,42 +119,66 @@ def calibrate_branch_oof(train_df, is_fungi_val, feat_cols, percentile, model_ty
     oof_y_val = y[oof_m]
     oof_p_val = oof_p[oof_m]
 
-    best_tau, best_f1 = 0.25, 0.0
-    for t in np.linspace(0.1, 0.8, 71):
-        f1 = f1_score(oof_y_val, (oof_p_val >= t).astype(int), zero_division=0)
-        if f1 > best_f1:
-            best_f1, best_tau = f1, t
+    best_tau, best_f2 = 0.20, 0.0
+    for t in np.linspace(0.08, 0.60, 53):
+        f2 = fbeta_score(oof_y_val, (oof_p_val >= t).astype(int), beta=2.0, zero_division=0)
+        if f2 > best_f2:
+            best_f2, best_tau = f2, t
 
-    print(f"  [{model_type.upper()}] Umbral calibrado en TRAIN OOF (n={len(oof_y_val)}): tau={best_tau:.4f} (F1 OOF={best_f1:.4f})")
+    print(f"  [{model_type.upper()}] Umbral calibrado en TRAIN OOF (n={len(oof_y_val)}): tau={best_tau:.4f} (F2 OOF={best_f2:.4f})")
     return best_tau
 
 
-def train(data_file: str, run_legacy_comparison: bool):
+def train(data_file: str):
     print("\n" + "=" * 75)
-    print("  PsychroScan — Arquitectura Jerárquica Condicionada por Dominio (v6)")
-    print("  Etapa 1 (Dominio) + Etapa 2A/2B (Especialización Térmica Desacoplada)")
-    print("=" * 75 + "\n")
+    print("  PsychroScan v3.0 — Species-Disjoint Hierarchical Architecture")
+    print("  Etapa 1 (Dominio) + Etapa 2A/2B (Desacoplada: 431 Bact / 434 Fungi)")
+    print("=" * 75)
 
-    df = load_and_balance(data_file)
-    train_df, test_df, feat_cols = split_by_organism(df)
+    df_primary, df_psychrotrophs = load_and_balance(data_file)
+    all_feat_cols = [c for c in df_primary.columns if c not in META_COLS and c != 'Species_Group' and c != 'Is_Fungi']
+    ptm_cols = ['N_Glyco_Density', 'N_Terminal_Hydrophobicity', 'Cys_Pair_Density']
+    bact_feat_cols = [c for c in all_feat_cols if c not in ptm_cols]
+    fungi_feat_cols = all_feat_cols
 
-    # ── 1. Etapa 1: Clasificador de Dominio (solo ve train) ────────────────────
+    # Split estrictamente Species-Disjoint
+    species_df = df_primary[['Species_Group', TARGET_COL, 'Is_Fungi']].drop_duplicates('Species_Group').reset_index(drop=True)
+    strat_key = species_df[TARGET_COL].astype(str) + "_" + species_df['Is_Fungi'].astype(str)
+
+    train_species, test_species = train_test_split(
+        species_df['Species_Group'],
+        test_size=TEST_ORG_FRACTION,
+        random_state=RANDOM_STATE,
+        stratify=strat_key
+    )
+
+    train_df = df_primary[df_primary['Species_Group'].isin(train_species)].copy().reset_index(drop=True)
+    test_df  = df_primary[df_primary['Species_Group'].isin(test_species)].copy().reset_index(drop=True)
+
+    print(f"\n  Especies únicas en el dataset: {len(species_df)}")
+    print(f"  Split estrictamente SPECIES-DISJOINT (GroupKFold-safe):")
+    print(f"    Train: {len(train_df):,} seqs ({len(train_species)} especies) — Cold: {(train_df[TARGET_COL]==0).sum()}, Warm: {(train_df[TARGET_COL]==1).sum()}")
+    print(f"    Test : {len(test_df):,} seqs ({len(test_species)} especies) — Cold: {(test_df[TARGET_COL]==0).sum()}, Warm: {(test_df[TARGET_COL]==1).sum()}")
+    print(f"    Species Overlap Train ∩ Test: {len(set(train_species).intersection(set(test_species)))} (Zero Leakage Guaranteed)")
+
+    # ── 1. Etapa 1: Clasificador de Dominio (Bacteria vs Fungi) ───────────────
     print("\n[Etapa 1] Entrenando Clasificador de Dominio (Bacteria vs Fungi)...")
+    X_dom_tr = train_df[all_feat_cols].astype(np.float32)
+    y_dom_tr = train_df['Is_Fungi'].values
     domain_pipe = Pipeline([
         ('scaler', StandardScaler()),
-        ('clf', LogisticRegression(max_iter=500, random_state=RANDOM_STATE))
+        ('clf', LogisticRegression(C=1.0, max_iter=1000, random_state=RANDOM_STATE))
     ])
-    domain_pipe.fit(train_df[feat_cols].astype(np.float32), train_df['Is_Fungi'].values)
+    domain_pipe.fit(X_dom_tr, y_dom_tr)
     joblib.dump(domain_pipe, os.path.join(MODELS_DIR, "domain_classifier.pkl"))
 
-    # ── 2. Etapa 2A: Rama Bacteriana ──────────────────────────────────────────
-    print("\n[Etapa 2A] Entrenando Rama Bacteriana (Feature Denoising + Ensamble)...")
-    tau_b = calibrate_branch_oof(train_df, is_fungi_val=0, feat_cols=feat_cols, percentile=30, model_type='bact')
+    # ── 2. Etapa 2A: Rama Bacteriana (431 Features Biofísicos Puros) ──────────
+    print("\n[Etapa 2A] Entrenando Rama Bacteriana (431 Biofísicos Puros)...")
+    bact_tr = train_df[train_df['Is_Fungi'] == 0].copy()
+    tau_b = calibrate_branch_oof(bact_tr, bact_feat_cols, model_type='bact', percentile=30)
 
-    bact_tr = train_df[train_df['Is_Fungi'] == 0]
-    X_b_tr = bact_tr[feat_cols].astype(np.float32)
-    y_b_tr = (bact_tr[TARGET_COL] == 0).astype(int)
-
+    X_b_tr = bact_tr[bact_feat_cols].astype(np.float32)
+    y_b_tr = (bact_tr[TARGET_COL] == 0).astype(int).values
     sel_b = SelectPercentile(mutual_info_classif, percentile=30)
     X_b_tr_s = sel_b.fit_transform(X_b_tr, y_b_tr)
 
@@ -176,14 +190,13 @@ def train(data_file: str, run_legacy_comparison: bool):
     bact_branch = {'sel': sel_b, 'lgb': m_b_lgb, 'rf': m_b_rf, 'et': m_b_et}
     joblib.dump(bact_branch, os.path.join(MODELS_DIR, "branch_bacteria.pkl"))
 
-    # ── 3. Etapa 2B: Rama Fúngica ─────────────────────────────────────────────
-    print("\n[Etapa 2B] Entrenando Rama Fúngica (Feature Denoising + Ensamble)...")
-    tau_f = calibrate_branch_oof(train_df, is_fungi_val=1, feat_cols=feat_cols, percentile=20, model_type='fungi')
+    # ── 3. Etapa 2B: Rama Fúngica (434 Features con PTM Proxies) ──────────────
+    print("\n[Etapa 2B] Entrenando Rama Fúngica (434 Features con PTM Proxies)...")
+    fungi_tr = train_df[train_df['Is_Fungi'] == 1].copy()
+    tau_f = calibrate_branch_oof(fungi_tr, fungi_feat_cols, model_type='fungi', percentile=20)
 
-    fungi_tr = train_df[train_df['Is_Fungi'] == 1]
-    X_f_tr = fungi_tr[feat_cols].astype(np.float32)
-    y_f_tr = (fungi_tr[TARGET_COL] == 0).astype(int)
-
+    X_f_tr = fungi_tr[fungi_feat_cols].astype(np.float32)
+    y_f_tr = (fungi_tr[TARGET_COL] == 0).astype(int).values
     sel_f = SelectPercentile(mutual_info_classif, percentile=20)
     X_f_tr_s = sel_f.fit_transform(X_f_tr, y_f_tr)
 
@@ -199,89 +212,86 @@ def train(data_file: str, run_legacy_comparison: bool):
     hierarchical_model = HierarchicalPsychroScan(domain_pipe, bact_branch, fungi_branch, tau_b=tau_b, tau_f=tau_f)
     joblib.dump(hierarchical_model, os.path.join(MODELS_DIR, "optuna_f2_model.pkl"))
 
-    # ── 5. Evaluación End-to-End en Test Held-Out ─────────────────────────────
-    X_te = test_df[feat_cols].astype(np.float32)
+    # ── 5. Evaluación End-to-End Canónica en Test Held-Out ────────────────────
+    X_te = test_df[all_feat_cols].astype(np.float32)
     y_te_cold = (test_df[TARGET_COL] == 0).astype(int).values
 
     probs = hierarchical_model.predict_proba(X_te)
     probs_cold = probs[:, 0]
-    preds_cold = (1 - hierarchical_model.predict(X_te))  # predict devuelve 0=Cold, 1=Warm -> 1=Cold
+    preds_cold = (1 - hierarchical_model.predict(X_te))
 
     auc_global  = roc_auc_score(y_te_cold, probs_cold)
     acc_global  = accuracy_score(y_te_cold, preds_cold)
     prec_global = precision_score(y_te_cold, preds_cold, zero_division=0)
     rec_global  = recall_score(y_te_cold, preds_cold, zero_division=0)
-    f1_global   = f1_score(y_te_cold, preds_cold, zero_division=0)
 
     print("\n" + "=" * 75)
-    print("  RESULTADO END-TO-END NO-ORÁCULO — Held-out por ORGANISMO")
+    print("  RESULTADO END-TO-END NO-ORÁCULO — Strictly SPECIES-DISJOINT")
     print(f"  ROC-AUC: {auc_global:.4f}  |  Accuracy: {acc_global*100:.2f}%  |  Precision: {prec_global*100:.2f}%  |  Recall: {rec_global*100:.2f}%")
     print("=" * 75)
-    print(classification_report(test_df[TARGET_COL].values, hierarchical_model.predict(X_te), target_names=['Cold (0)', 'Warm (1)']))
 
     # ── 6. Desglose Estratificado por Dominio ─────────────────────────────────
     mask_b = (test_df['Is_Fungi'] == 0).values
     mask_f = (test_df['Is_Fungi'] == 1).values
 
-    print("\n  ── Rendimiento Estratificado por Dominio en Test Held-Out ──")
+    print("\n  ── Rendimiento Estratificado por Dominio (SPECIES-DISJOINT) ──")
     print(f"  🦠 BACTERIA (n={mask_b.sum()}): ROC-AUC = {roc_auc_score(y_te_cold[mask_b], probs_cold[mask_b]):.4f} | "
-          f"Accuracy = {accuracy_score(y_te_cold[mask_b], preds_cold[mask_b])*100:.2f}% | "
           f"Precision = {precision_score(y_te_cold[mask_b], preds_cold[mask_b])*100:.2f}% | "
           f"Recall = {recall_score(y_te_cold[mask_b], preds_cold[mask_b])*100:.2f}%")
     print(f"  🍄 FUNGI    (n={mask_f.sum()}): ROC-AUC = {roc_auc_score(y_te_cold[mask_f], probs_cold[mask_f]):.4f} | "
-          f"Accuracy = {accuracy_score(y_te_cold[mask_f], preds_cold[mask_f])*100:.2f}% | "
           f"Precision = {precision_score(y_te_cold[mask_f], preds_cold[mask_f])*100:.2f}% | "
           f"Recall = {recall_score(y_te_cold[mask_f], preds_cold[mask_f])*100:.2f}%")
 
-    # ── 7. Manifiesto y Metadata ──────────────────────────────────────────────
+    # ── 7. Generación del Registro Canónico (heldout_predictions.csv) ─────────
+    commit_hash = "unknown"
+    try:
+        commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('utf-8').strip()
+    except Exception:
+        pass
+
+    pred_domains = domain_pipe.predict(X_te)
+    canonical_df = pd.DataFrame({
+        'Protein_ID':          test_df['Protein_ID'],
+        'Species_Group':       test_df['Species_Group'],
+        'Organism_Source':     test_df['Organism_Source'],
+        'Domain_True':         test_df['Is_Fungi'].map({0: 'Bacteria', 1: 'Fungi'}),
+        'Domain_Pred':         pd.Series(pred_domains).map({0: 'Bacteria', 1: 'Fungi'}),
+        'True_Thermal_Class':  test_df[TARGET_COL],
+        'P_Cold':              probs_cold,
+        'Pred_Cold_Tau':       preds_cold,
+        'Split_Version':       'v3.0.0_Species_Disjoint',
+        'Feature_Set_Version': 'Decoupled_431Bact_434Fungi',
+        'Model_Commit_Hash':   commit_hash
+    })
+    canonical_path = os.path.join(MODELS_DIR, "heldout_predictions.csv")
+    canonical_df.to_csv(canonical_path, index=False)
+    print(f"\n  📄 Registro Canónico Único guardado → {canonical_path} ({len(canonical_df)} filas)")
+
+    # ── 8. Manifiesto y Metadata ──────────────────────────────────────────────
     with open(os.path.join(MODELS_DIR, "threshold.txt"), 'w') as f:
         f.write(f"{tau_b},{tau_f}")
     with open(os.path.join(MODELS_DIR, "feature_columns.txt"), 'w') as f:
-        f.write('\n'.join(feat_cols))
+        f.write('\n'.join(all_feat_cols))
 
     manifest = {
         "data_file":            data_file,
         "random_state":         RANDOM_STATE,
-        "split_unit":           "organism",
-        "model_architecture":   "HierarchicalPsychroScan_TwoStage",
+        "split_unit":           "species",
+        "split_version":        "v3.0.0_Species_Disjoint",
+        "model_architecture":   "HierarchicalPsychroScan_SpeciesDisjoint",
         "tau_bacteria":         tau_b,
         "tau_fungi":            tau_f,
-        "threshold":            tau_b,  # backward compatibility default
-        "train_organisms":      sorted(set(train_df['Organism_Source'])),
-        "test_organisms":       sorted(set(test_df['Organism_Source'])),
-        "train_protein_ids":    train_df['Protein_ID'].tolist(),
-        "test_protein_ids":     test_df['Protein_ID'].tolist(),
-        "auc_global_holdout":   auc_global,
-        "auc_bacteria_holdout": roc_auc_score(y_te_cold[mask_b], probs_cold[mask_b]),
-        "auc_fungi_holdout":    roc_auc_score(y_te_cold[mask_f], probs_cold[mask_f]),
+        "train_species":        sorted(train_species),
+        "test_species":         sorted(test_species),
+        "test_protein_ids":     list(test_df['Protein_ID'])
     }
-    manifest_path = os.path.join(MODELS_DIR, "split_manifest.json")
-    with open(manifest_path, 'w') as f:
+    with open(os.path.join(MODELS_DIR, "split_manifest.json"), 'w') as f:
         json.dump(manifest, f, indent=2)
-    print(f"\n  📄 Manifiesto jerárquico guardado → {manifest_path}")
-
-    # Top 15 diversificado
-    top_15 = test_df[test_df[TARGET_COL] == 0].copy()
-    top_15['Cold_Probability'] = probs_cold[test_df[TARGET_COL] == 0]
-    top_15 = top_15.sort_values('Cold_Probability', ascending=False)
-    selected = []
-    ec_counts = {}
-    for _, row in top_15.iterrows():
-        ec = row['EC_Class']
-        ec_counts[ec] = ec_counts.get(ec, 0)
-        if ec_counts[ec] < TOP15_MAX_PER_EC:
-            selected.append(row)
-            ec_counts[ec] += 1
-        if len(selected) >= 15:
-            break
-    top15_df = pd.DataFrame(selected)
-    top15_df.to_csv(os.path.join(RESULTS_DIR, "top15_candidates_raw.csv"), index=False)
-    print(f"  Top 15 guardado → results/top15_candidates_raw.csv\n")
+    print(f"  📄 Manifiesto jerárquico guardado → results/models/split_manifest.json")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data-file', default=DEFAULT_DATA_FILE, help='CSV de features')
-    parser.add_argument('--skip-legacy-comparison', action='store_true', help='Omitir split legacy')
+    parser = argparse.ArgumentParser(description="PsychroScan v3.0 Species-Disjoint Trainer")
+    parser.add_argument("--data-file", default=DEFAULT_DATA_FILE, help="Ruta al CSV de features procesado")
     args = parser.parse_args()
-    train(args.data_file, run_legacy_comparison=not args.skip_legacy_comparison)
+    train(args.data_file)

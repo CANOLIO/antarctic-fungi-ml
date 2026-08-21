@@ -22,33 +22,47 @@ class HierarchicalPsychroScan:
       predict_proba(X)[:, 0] -> P(Cold)
       predict_proba(X)[:, 1] -> P(Warm)
     """
-    def __init__(self, domain_pipe, bact_branch, fungi_branch, tau_b=0.2800, tau_f=0.2300):
+    def __init__(self, domain_pipe, bact_branch, fungi_branch, tau_b=0.2800, tau_f=0.2300, bact_cols=None, fungi_cols=None):
         self.domain_pipe  = domain_pipe
         self.bact_branch  = bact_branch   # dict: {'sel': sel_b, 'lgb': m_l, 'rf': m_r, 'et': m_e}
         self.fungi_branch = fungi_branch  # dict: {'sel': sel_f, 'rf': m_r, 'et': m_e, 'lgb': m_l}
         self.tau_b        = tau_b
         self.tau_f        = tau_f
+        self.bact_cols    = bact_cols
+        self.fungi_cols   = fungi_cols
 
     def predict_proba(self, X):
         X_df = pd.DataFrame(X) if not isinstance(X, pd.DataFrame) else X.copy()
-        X_mat = np.array(X_df, dtype=np.float32)
         
         # Etapa 1: Predicción de dominio (0=Bacteria, 1=Fungi)
-        pred_domains = self.domain_pipe.predict(X_mat)
+        X_all_mat = np.array(X_df, dtype=np.float32)
+        pred_domains = self.domain_pipe.predict(X_all_mat)
         
-        p_cold = np.zeros(len(X_mat), dtype=np.float32)
+        # Subsets por dominio
+        if self.bact_cols is not None and isinstance(X, pd.DataFrame):
+            X_bact = np.array(X_df[self.bact_cols], dtype=np.float32)
+        else:
+            X_bact = X_all_mat[:, :431] if X_all_mat.shape[1] > 431 else X_all_mat
+
+        if self.fungi_cols is not None and isinstance(X, pd.DataFrame):
+            X_fungi = np.array(X_df[self.fungi_cols], dtype=np.float32)
+        else:
+            X_fungi = X_all_mat
+
+        p_cold = np.zeros(len(X_all_mat), dtype=np.float32)
         
-        for i in range(len(X_mat)):
-            xi = X_mat[[i]]
+        for i in range(len(X_all_mat)):
             if pred_domains[i] == 0:
-                # Rama Bacteriana
+                # Rama Bacteriana (431 features)
+                xi = X_bact[[i]]
                 xs = self.bact_branch['sel'].transform(xi)
                 pl = self.bact_branch['lgb'].predict_proba(xs)[:, 1][0]
                 pr = self.bact_branch['rf'].predict_proba(xs)[:, 1][0]
                 pe = self.bact_branch['et'].predict_proba(xs)[:, 1][0]
                 p_cold[i] = 0.50 * pl + 0.25 * pr + 0.25 * pe
             else:
-                # Rama Fúngica
+                # Rama Fúngica (434 features)
+                xi = X_fungi[[i]]
                 xs = self.fungi_branch['sel'].transform(xi)
                 pr = self.fungi_branch['rf'].predict_proba(xs)[:, 1][0]
                 pe = self.fungi_branch['et'].predict_proba(xs)[:, 1][0]
