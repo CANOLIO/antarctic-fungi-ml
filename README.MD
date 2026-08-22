@@ -39,13 +39,13 @@ To solve this challenge, PsychroScan v3.0 enforces **Strict Species-Disjoint Gov
       [Obligate Psychrophiles]    [Psychrotrophs / Ambiguous]   [Mesophiles]
          (T_opt ≤ 15°C)            (15°C < T_opt ≤ 25°C)        (T_opt > 25°C)
          Class 0 (Cold)            Quarantined Sensitivity      Class 1 (Warm)
-         580 sequences             102 sequences (P. antarctica) 2,537 sequences
+         601 sequences             102 sequences (P. antarctica) 2,537 sequences
                 │                                               │
                 └───────────────────────┬───────────────────────┘
                                         │
-                         [Species-Disjoint GroupKFold]
-                        Strictly Disjoint by SPECIES (n=81)
-                         (64 Train Spp / 17 Test Spp)
+                    [Leave-One-Species-Out (LOSO) CV]
+                   Strictly Disjoint across 83 SPECIES
+                    (53 Bacteria / 30 Fungi, N = 3,138)
                                         │
                          [Domain-Decoupled Two-Stage Model]
                          Stage 1: Domain Router (Bacteria vs Fungi)
@@ -54,7 +54,7 @@ To solve this challenge, PsychroScan v3.0 enforces **Strict Species-Disjoint Gov
                                         │
                                         ▼
                         Ground-Truth Unbiased Evaluation
-                        (Canonical: heldout_predictions.csv)
+                     (Canonical: loso_canonical_predictions.csv)
 ```
 
 ### Taxonomic Verification and Dataset Partitions
@@ -146,7 +146,7 @@ $$\text{Enrichment@K} = \frac{\% \text{ Cold Enzymes Observed in Top-}K}{\% \tex
 
 ```
 Top Predictive Features by Domain-Specific Ensemble Importance (Gain / Gini):
-  • Bacterial Branch (431 features) : AAC_R, AAC_C, DPC_NL, AAC_G, AAC_K, DPC_KG, DPC_AG, Turn_Fraction
+  • Bacterial Branch (431 features) : AAC_R, AAC_C, DPC_NL, AAC_G, AAC_K, DPC_KG, DPC_AG, DPC_TI
   • Fungal Branch (434 features)    : AAC_N, DPC_SP, AAC_R, AAC_A, DPC_NI, DPC_KD, DPC_AA, DPC_AE
 ```
 
@@ -168,14 +168,14 @@ Principal Component Analysis (PCA) across the 434-dimensional descriptor space d
 
 The framework was evaluated on complete proteomes from external, quarantined taxa:
 
-| External Benchmark Organism | Phenotype | Proteome Size ($N$) | Annotated Hydrolases ($K$) | Top 5% Hydrolases Recovered | Hypergeometric Test ($p$-value) | PPI Score (0–100) | Classification Verdict |
+| External Benchmark Organism | Phenotype | Proteome Size ($N$) | Annotated Hydrolases ($K$) | Top 15 Hydrolases (Fold, $p$) | Top 5% Decile ($k/K$, $p$) | PPI Score (0–100) | Classification Verdict |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
-| ***Cryomyces antarcticus*** | Antarctic Endemic Black Yeast | 12,792 | 48 | **$9 / 48$ ($18.8\%$)** | $\mathbf{p = 5.39 \times 10^{-4}}$ | **30.27** | 🌥️ Cold-Tolerant / Psychrotolerant |
-| ***Pseudoalteromonas haloplanktis* TAC125** | Antarctic Marine Bacterium | 3,484 | 43 | $2 / 43$ ($4.7\%$) | $p = 0.645$ | **63.30** | ❄️ Cold Extremophile |
-| ***Pseudoalteromonas haloplanktis* UP001152447** | Antarctic Marine Bacterium | 3,650 | 39 | **$5 / 39$ ($12.8\%$)** | $\mathbf{p = 0.0433}$ | **63.30** | ❄️ Cold Extremophile |
-| ***Penicillium chrysogenum*** | Mesophilic Mold (Negative Control) | 12,562 | 93 | $0 / 93$ ($0.0\%$) | $p = 1.000$ | **24.80** | 🌱 Mesophilic Control |
+| ***Cryomyces antarcticus*** | Antarctic Endemic Black Yeast | 12,792 | 48 | **$1 / 48$ ($16.7\times$, $p = 0.055^\sim$)** | $4 / 48$ ($p = 0.218$) | **30.27** | 🌥️ Cold-Tolerant / Psychrotolerant |
+| ***Pseudoalteromonas haloplanktis* TAC125** | Antarctic Marine Bacterium | 3,484 | 43 | $1 / 43$ ($5.3\times$, $p = 0.170$) | $2 / 43$ ($p = 0.645$) | **63.30** | ❄️ Cold Extremophile |
+| ***Pseudoalteromonas haloplanktis* UP001152447** | Antarctic Marine Bacterium | 3,650 | 39 | **$2 / 39$ ($12.5\times$, $\mathbf{p = 0.011^*}$)** | **$5 / 39$ ($\mathbf{p = 0.0433^*}$)** | **63.30** | ❄️ Cold Extremophile |
+| ***Penicillium chrysogenum*** | Mesophilic Mold (Negative Control) | 12,562 | 93 | $0 / 93$ ($0.0\times$, $p = 1.000$) | $0 / 93$ ($p = 1.000$) | **24.80** | 🌱 Mesophilic Control |
 
-> **Validation in *Cryomyces antarcticus*:** PsychroScan prioritizes an annotated cold-active **Alpha-galactosidase (A0ABR0LQX1) at Rank #8 of the entire 12,792-protein proteome** ($P(\text{Cold}) = 45.2\%$), with statistically significant enrichment of hydrolytic enzymes in the top 5% decile ($\mathbf{p = 5.39 \times 10^{-4}}$).
+> **Validation in *Cryomyces antarcticus*:** PsychroScan prioritizes an annotated cold-active **Alpha-galactosidase (A0ABR0LQX1) at Rank #8 of the entire 12,792-protein proteome** ($P(\text{Cold}) = 45.2\%$), achieving a **$16.7\times$ enrichment in the extreme Top 15 candidates** ($p = 0.0549^\sim$). In the broader Top 5% decile ($n = 639$), 4 hydrolases are recovered ($p = 0.218$).
 
 ![Figure 5: Retrospective Benchmark and Positioning Dendrogram](examples/benchmark/12_Figure4_Composite.png)  
 *Figure 5: Composite benchmark summary (Panel A) and proteome-level biochemical distance dendrogram (Panel B, Ward linkage over 434 descriptors across reference taxa).*
