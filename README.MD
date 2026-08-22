@@ -206,7 +206,7 @@ $$\Delta\text{AUC} = \text{AUC}_\text{PsychroScan} - \text{AUC}_\text{GRAVY}$$
 | **Bacterial Branch (53 spp)** | **0.7810** | 0.7838 [0.7071, 0.8564] | 0.4603 [0.3751, 0.5443] | **$\mathbf{+0.3235}$ [$+0.2038, +0.4490$]** | $\mathbf{p < 0.001}$ |
 | **Fungal Branch (30 spp)** | **0.7425** | 0.7412 [0.6529, 0.8196] | 0.4981 [0.4480, 0.5362] | **$\mathbf{+0.2431}$ [$+0.1626, +0.3185$]** | $\mathbf{p < 0.001}$ |
 
-> **Interpretation:** PsychroScan captures non-linear thermoadaptive signal that is not explained by a single classical hydrophobicity descriptor ($\Delta\text{AUC} > 0$ across all 1,000 resamplings, $p < 0.001$).
+> **Interpretation:** PsychroScan captures multivariate thermoadaptive signal that is not explained by a single classical hydrophobicity descriptor ($\Delta\text{AUC} > 0$ across all 1,000 resamplings, $p < 0.001$).
 
 ---
 
