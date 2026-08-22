@@ -63,8 +63,11 @@ def load_model_and_data():
         manifest = json.load(f)
 
     df = pd.read_csv(DATA_FILE)
-    train_ids = set(manifest['train_protein_ids'])
     test_ids  = set(manifest['test_protein_ids'])
+    if 'train_protein_ids' in manifest:
+        train_ids = set(manifest['train_protein_ids'])
+    else:
+        train_ids = set(df[~df['Protein_ID'].isin(test_ids)]['Protein_ID'])
 
     train_df = df[df['Protein_ID'].isin(train_ids)].reset_index(drop=True)
     test_df  = df[df['Protein_ID'].isin(test_ids)].reset_index(drop=True)
@@ -88,14 +91,95 @@ def load_model_and_data():
 def fig_feature_importance(model, feat_cols):
     print("  Generando Fig E — Feature Importance...")
 
+    # Color and categorization scheme
+    def categorize(f):
+        if f in ('IVYWREL_Index', 'CvP_Bias', 'Flexibility_Ratio', 'N_Glyco_Density', 'N_Terminal_Hydrophobicity', 'Cys_Pair_Density'):
+            return 'Thermoadaptive / PTM'
+        if f.startswith('DPC_'):
+            return 'Dipeptide'
+        if f.startswith('AAC_'):
+            return 'Amino Acid'
+        return 'Physicochemical'
+
+    color_map = {
+        'Thermoadaptive / PTM': '#e74c3c',
+        'Dipeptide':            '#3498db',
+        'Amino Acid':           '#2ecc71',
+        'Physicochemical':      '#95a5a6',
+    }
+
+    # Case 1: HierarchicalPsychroScan (Domain-conditioned dual branches)
+    if hasattr(model, 'bact_branch') and hasattr(model, 'fungi_branch'):
+        # Bacterial branch (LGBM + RF + ET over 431 features)
+        bact_sel_mask = model.bact_branch['sel'].get_support()
+        ptm_cols = {'N_Glyco_Density', 'N_Terminal_Hydrophobicity', 'Cys_Pair_Density'}
+        bact_cols = [c for c in feat_cols if c not in ptm_cols]
+        bact_sel_cols = [f for f, s in zip(bact_cols, bact_sel_mask) if s]
+        
+        bact_lgb_imp = model.bact_branch['lgb'].feature_importances_
+        bact_rf_imp  = model.bact_branch['rf'].feature_importances_
+        # Normalized average importance
+        bact_imp_norm = (bact_lgb_imp / (bact_lgb_imp.sum() + 1e-9)) * 0.5 + (bact_rf_imp / (bact_rf_imp.sum() + 1e-9)) * 0.5
+        
+        df_bact = pd.DataFrame({'Feature': bact_sel_cols, 'Importance': bact_imp_norm})
+        df_bact['Category'] = df_bact['Feature'].apply(categorize)
+        df_bact = df_bact.sort_values('Importance', ascending=False).head(20)
+
+        # Fungal branch (RF + ET + LGBM over 434 features)
+        fungi_sel_mask = model.fungi_branch['sel'].get_support()
+        fungi_sel_cols = [f for f, s in zip(feat_cols, fungi_sel_mask) if s]
+        fungi_rf_imp  = model.fungi_branch['rf'].feature_importances_
+        fungi_et_imp  = model.fungi_branch['et'].feature_importances_
+        fungi_imp_norm = (fungi_rf_imp / (fungi_rf_imp.sum() + 1e-9)) * 0.5 + (fungi_et_imp / (fungi_et_imp.sum() + 1e-9)) * 0.5
+
+        df_fungi = pd.DataFrame({'Feature': fungi_sel_cols, 'Importance': fungi_imp_norm})
+        df_fungi['Category'] = df_fungi['Feature'].apply(categorize)
+        df_fungi = df_fungi.sort_values('Importance', ascending=False).head(20)
+
+        # Create dual-panel figure (Bacteria vs Fungi)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 8), sharey=False)
+        
+        # Panel A: Bacteria
+        colors1 = df_bact['Category'].map(color_map)
+        ax1.barh(range(len(df_bact)), df_bact['Importance'].values, color=colors1, edgecolor='white', linewidth=0.5)
+        ax1.set_yticks(range(len(df_bact)))
+        ax1.set_yticklabels(df_bact['Feature'].values, fontsize=8.5)
+        ax1.invert_yaxis()
+        ax1.set_xlabel('Ensemble Feature Importance (Normalized)', fontsize=10)
+        ax1.set_title('A. Bacterial Branch (431 Features)\nTop Discriminative Biophysical Descriptors', fontsize=11, fontweight='bold')
+        ax1.set_facecolor(GREY)
+        ax1.grid(axis='x', alpha=0.4, color='white')
+
+        # Panel B: Fungi
+        colors2 = df_fungi['Category'].map(color_map)
+        ax2.barh(range(len(df_fungi)), df_fungi['Importance'].values, color=colors2, edgecolor='white', linewidth=0.5)
+        ax2.set_yticks(range(len(df_fungi)))
+        ax2.set_yticklabels(df_fungi['Feature'].values, fontsize=8.5)
+        ax2.invert_yaxis()
+        ax2.set_xlabel('Ensemble Feature Importance (Normalized)', fontsize=10)
+        ax2.set_title('B. Fungal Branch (434 Features)\nEnriched with PTM & Secretion Proxies', fontsize=11, fontweight='bold')
+        ax2.set_facecolor(GREY)
+        ax2.grid(axis='x', alpha=0.4, color='white')
+
+        legend_patches = [mpatches.Patch(color=v, label=k) for k, v in color_map.items()]
+        fig.legend(handles=legend_patches, loc='lower center', ncol=4, bbox_to_anchor=(0.5, -0.02), fontsize=10)
+        fig.suptitle('Top Predictive Features by Domain Architecture — PsychroScan v3.0', fontsize=13, fontweight='bold', y=1.02)
+        fig.tight_layout()
+
+        out = os.path.join(FIGURES_DIR, '11E_Feature_Importance.png')
+        fig.savefig(out, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        print(f"     → {out}")
+        return df_fungi
+
+    # Fallback for monolithic models
     if hasattr(model, 'feature_importances_'):
         importances = model.feature_importances_
         features = feat_cols
     elif hasattr(model, 'm_lgb') and hasattr(model, 'selector') and model.selector is not None:
         sel_mask = model.selector.get_support()
-        sel_features = [f for f, s in zip(feat_cols, sel_mask) if s]
+        features = [f for f, s in zip(feat_cols, sel_mask) if s]
         importances = model.m_lgb.feature_importances_
-        features = sel_features
     elif hasattr(model, 'm_lgb'):
         importances = model.m_lgb.feature_importances_
         features = feat_cols
@@ -107,48 +191,21 @@ def fig_feature_importance(model, feat_cols):
         'Feature':    features,
         'Importance': importances,
     }).sort_values('Importance', ascending=False).head(30)
-
-    def categorize(f):
-        if f in ('IVYWREL_Index', 'CvP_Bias', 'Flexibility_Ratio'):
-            return 'Thermoadaptive'
-        if f.startswith('DPC_'):
-            return 'Dipeptide'
-        if f.startswith('AAC_'):
-            return 'Amino Acid'
-        return 'Physicochemical'
-
     feat_df['Category'] = feat_df['Feature'].apply(categorize)
-
-    color_map = {
-        'Thermoadaptive': '#e74c3c',
-        'Dipeptide':      '#3498db',
-        'Amino Acid':     '#2ecc71',
-        'Physicochemical':'#95a5a6',
-    }
     colors = feat_df['Category'].map(color_map)
 
     fig, ax = plt.subplots(figsize=(9, 8))
-    ax.barh(range(len(feat_df)), feat_df['Importance'].values,
-            color=colors, edgecolor='white', linewidth=0.5)
+    ax.barh(range(len(feat_df)), feat_df['Importance'].values, color=colors, edgecolor='white', linewidth=0.5)
     ax.set_yticks(range(len(feat_df)))
     ax.set_yticklabels(feat_df['Feature'].values, fontsize=8.5)
     ax.invert_yaxis()
-    ax.set_xlabel('Feature Importance (LightGBM gain)', fontsize=10)
-    ax.set_title('Top 30 Features — PsychroScan Model\n'
-                 'Top features are mathematical components of thermoadaptive indices',
-                 fontsize=11, fontweight='bold')
+    ax.set_xlabel('Feature Importance', fontsize=10)
+    ax.set_title('Top 30 Features — PsychroScan Model', fontsize=11, fontweight='bold')
     ax.set_facecolor(GREY)
     ax.grid(axis='x', alpha=0.4, color='white')
 
     legend_patches = [mpatches.Patch(color=v, label=k) for k, v in color_map.items()]
     ax.legend(handles=legend_patches, loc='lower right', fontsize=9)
-
-    for i, (_, row) in enumerate(feat_df.iterrows()):
-        if row['Category'] == 'Thermoadaptive':
-            ax.text(row['Importance'] + max(feat_df['Importance']) * 0.01,
-                    i, row['Feature'], va='center', fontsize=7.5,
-                    color='#c0392b', fontweight='bold')
-
     fig.tight_layout()
     out = os.path.join(FIGURES_DIR, '11E_Feature_Importance.png')
     fig.savefig(out, dpi=300, bbox_inches='tight')
@@ -488,7 +545,8 @@ def main():
     print("=" * 65 + "\n")
 
     model, feat_cols, X_full, y_full, X_tr, X_te, y_tr, y_te, manifest = load_model_and_data()
-    print(f"  Test held-out: {len(manifest['test_organisms'])} organismos, {len(X_te)} proteínas\n")
+    n_orgs = len(manifest.get('test_species', manifest.get('test_organisms', [])))
+    print(f"  Test held-out: {n_orgs} especies/organismos, {len(X_te)} proteínas\n")
 
     feat_df = fig_feature_importance(model, feat_cols)
 
