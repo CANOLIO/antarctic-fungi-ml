@@ -15,8 +15,9 @@ All notable changes, methodological corrections, and validation benchmarks of th
   * Global $\Delta\text{AUC} = \mathbf{+0.3241}$ [$95\%\text{ CI: } +0.2316, +0.4121$], $p < 0.001$.
   * Bacterial Branch $\Delta\text{AUC} = \mathbf{+0.3235}$ [$95\%\text{ CI: } +0.2038, +0.4490$], $p < 0.001$.
   * Fungal Branch $\Delta\text{AUC} = \mathbf{+0.2431}$ [$95\%\text{ CI: } +0.1626, +0.3185$], $p < 0.001$.
-* **Biochemical Distance Dendrogram Stability Analysis (125 Reference Organisms):**
-  * Evaluated distance-matrix stability against protein subsampling ($N=50, 100, 250$ proteins per organism), yielding a Pearson correlation of $\mathbf{r = 0.8880}$.
+* **Biochemical Distance Dendrogram Stability Analysis (35 Reference Organisms / 125 Database Taxa):**
+  * The proteome positioning tree utilizes a standard reference panel of **35 curated organisms** (`10_build_reference_panel.py`).
+  * Evaluated distance-matrix stability against protein subsampling ($N=50, 100, 250$ proteins per organism) across all 125 taxa in the database, yielding a Pearson correlation of $\mathbf{r = 0.8880}$.
   * Explicitly documented baseline cophenetic correlation ($\mathbf{0.5430}$), characterizing the tree projection as providing a moderate representation of the underlying multidimensional distance matrix.
 * **Figure 5 Composite Reconciliation & *Cryomyces antarcticus* Canonical Alignment:**
   * Aligned Table 3.6 and Figure 5 Panel A directly with `results/benchmark/hypergeometric_table.csv`.

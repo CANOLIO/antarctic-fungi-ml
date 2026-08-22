@@ -212,10 +212,10 @@ $$\Delta\text{AUC} = \text{AUC}_\text{PsychroScan} - \text{AUC}_\text{GRAVY}$$
 
 ### 3.9. Biochemical Distance Dendrogram Stability & Reference Panel Scope
 
-1. **Reference Panel Scope (125 Organisms):** The dendrogram analysis uses exactly **125 reference organisms** curated in `config/taxa_list.json` across kingdoms to establish broad background proteomic context for query genomes, distinct from the core 83-species binary classification cohort.
-2. **Methodological Stability Metrics:**
-   * **Distance-Matrix Stability:** Subsampling $N=50, 100, 250$ proteins per organism yields a distance matrix Pearson correlation of $\mathbf{r = 0.8880}$, demonstrating high stability of the underlying biochemical distance matrix against protein subsampling and supporting reproducible proteome-level positioning.
-   * **Cophenetic Correlation:** The baseline cophenetic correlation is $\mathbf{0.5430}$, indicating that the hierarchical tree provides only a moderate representation of the underlying multidimensional biochemical distance structure.
+1. **Standard Reference Panel (35 Curated Organisms):** The proteome-level positioning dendrograms (Figure 5B and `09_predict_new_genome.py`) utilize a focused panel of **35 representative reference organisms** (25 psychrophiles/psychrotolerants and 10 mesophilic controls from `10_build_reference_panel.py`) spanning diverse bacterial and fungal lineages to contextualize newly sequenced query genomes.
+2. **Methodological Stability Metrics across Database Taxa:**
+   * **Distance-Matrix Stability:** Subsampling $N=50, 100, 250$ proteins per organism across all 125 taxa in the processed database yields a distance matrix Pearson correlation of $\mathbf{r = 0.8880}$, demonstrating high stability of the underlying biochemical distance matrix against protein subsampling and supporting reproducible proteome-level positioning.
+   * **Cophenetic Correlation:** The baseline cophenetic correlation is $\mathbf{0.5430}$, indicating that the hierarchical tree provides a moderate representation of the underlying multidimensional biochemical distance structure.
 
 ---
 
