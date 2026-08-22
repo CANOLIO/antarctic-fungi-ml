@@ -111,12 +111,14 @@ Key Methodological Conclusions from LOSO & Multi-Split Cross-Validation:
 | Zero-R (Majority Class) | Empirical Class Distribution | 0.5000 | — | — |
 
 ```
-End-to-End Confusion Matrix on Full LOSO Dataset (N = 3,138 across 83 species):
+End-to-End Confusion Matrix — OOF-Calibrated Decision Performance (N = 3,138 across 83 species):
 ────────────────────────────────────────────────────────────────────────
                       Predicted Cold (0)      Predicted Warm (1)
   True Cold (0):             437                     164           [Sensitivity = 72.7%]
   True Warm (1):             754                   1,783           [Specificity = 70.3%]
 ────────────────────────────────────────────────────────────────────────
+Note: Threshold-dependent binary performance (tau_b=0.21, tau_f=0.26 calibrated on OOF predictions).
+Primary model evaluations remain threshold-independent (ROC-AUC, PR-AUC, Precision@K, Enrichment@K).
 ```
 
 ![Figure 1: ROC Curve on Full LOSO Dataset](examples/figures/08A_ROC_Curve.png)  
@@ -194,22 +196,26 @@ To establish generalization across independent biochemical databases while stric
 
 ### 3.8. Statistical Model Comparison (Paired Cluster Bootstrap over $\Delta\text{AUC}$)
 
-To evaluate statistical superiority without violating intra-species independence, we performed paired cluster bootstrap ($1,000$ species-level resamplings) comparing PsychroScan v3.0 against a classical 1D biophysical baseline ($\text{Score} = -\text{GRAVY}$):
+To evaluate whether PsychroScan captures predictive signal beyond classical 1D hydrophobicity without violating intra-species independence, we performed paired cluster bootstrap ($B = 1,000$ species-level resamplings) comparing PsychroScan v3.0 against a classical 1D biophysical baseline ($\text{Score} = -\text{GRAVY}$):
 
-| Taxonomic Domain | PsychroScan ROC-AUC (LOSO) | 1D Baseline ROC-AUC (GRAVY) | Paired $\Delta\text{AUC}$ [95% CI] | Empirical $p$-value |
-|:---|:---:|:---:|:---:|:---:|
-| **Global Combinado (83 spp)** | **0.7914** [0.7248, 0.8470] | 0.4674 [0.4041, 0.5230] | **$\mathbf{+0.3241}$ [$+0.2316, +0.4121$]** | $\mathbf{p < 10^{-4}}$ |
-| **Bacterial Branch (53 spp)** | **0.7838** [0.7071, 0.8564] | 0.4603 [0.3751, 0.5443] | **$\mathbf{+0.3235}$ [$+0.2038, +0.4490$]** | $\mathbf{p < 10^{-4}}$ |
-| **Fungal Branch (30 spp)** | **0.7412** [0.6529, 0.8196] | 0.4981 [0.4480, 0.5362] | **$\mathbf{+0.2431}$ [$+0.1626, +0.3185$]** | $\mathbf{p < 10^{-4}}$ |
+$$\Delta\text{AUC} = \text{AUC}_\text{PsychroScan} - \text{AUC}_\text{GRAVY}$$
+
+| Taxonomic Domain | Observed LOSO AUC | Bootstrap Mean AUC [95% CI] | 1D Baseline (GRAVY) [95% CI] | Paired $\Delta\text{AUC}$ [95% CI] | Empirical $p$-value ($B=1,000$) |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **Global Combinado (83 spp)** | **0.7918** | 0.7914 [0.7248, 0.8470] | 0.4674 [0.4041, 0.5230] | **$\mathbf{+0.3241}$ [$+0.2316, +0.4121$]** | $\mathbf{p < 0.001}$ |
+| **Bacterial Branch (53 spp)** | **0.7810** | 0.7838 [0.7071, 0.8564] | 0.4603 [0.3751, 0.5443] | **$\mathbf{+0.3235}$ [$+0.2038, +0.4490$]** | $\mathbf{p < 0.001}$ |
+| **Fungal Branch (30 spp)** | **0.7425** | 0.7412 [0.6529, 0.8196] | 0.4981 [0.4480, 0.5362] | **$\mathbf{+0.2431}$ [$+0.1626, +0.3185$]** | $\mathbf{p < 0.001}$ |
+
+> **Interpretation:** PsychroScan captures non-linear thermoadaptive signal that is not explained by a single classical hydrophobicity descriptor ($\Delta\text{AUC} > 0$ across all 1,000 resamplings, $p < 0.001$).
 
 ---
 
 ### 3.9. Biochemical Distance Dendrogram Stability & Reference Panel Scope
 
-1. **Reference Panel vs Binary Training Scope:** The dendrogram analysis utilizes a broader panel of **35–125 reference organisms** curated in `config/taxa_list.json` across kingdoms to establish background proteomic context for query genomes, distinct from the core 83-species binary classification cohort.
+1. **Reference Panel Scope (125 Organisms):** The dendrogram analysis uses exactly **125 reference organisms** curated in `config/taxa_list.json` across kingdoms to establish broad background proteomic context for query genomes, distinct from the core 83-species binary classification cohort.
 2. **Methodological Stability Metrics:**
-   * **Subsampling Stability:** Subsampling $N=50, 100, 250$ proteins per organism yields a distance matrix Pearson correlation of $\mathbf{r = 0.8880}$, demonstrating high topological stability against sample size variations.
-   * **Cophenetic Correlation:** The baseline cophenetic correlation is $\mathbf{0.5430}$, indicating a moderate fit between the hierarchical tree projection and the underlying multidimensional Euclidean distance matrix, which reflects genuine complex non-linear proteomic variance.
+   * **Distance-Matrix Stability:** Subsampling $N=50, 100, 250$ proteins per organism yields a distance matrix Pearson correlation of $\mathbf{r = 0.8880}$, demonstrating high stability of the underlying biochemical distance matrix against protein subsampling and supporting reproducible proteome-level positioning.
+   * **Cophenetic Correlation:** The baseline cophenetic correlation is $\mathbf{0.5430}$, indicating that the hierarchical tree provides only a moderate representation of the underlying multidimensional biochemical distance structure.
 
 ---
 
