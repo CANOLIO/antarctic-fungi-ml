@@ -8,7 +8,8 @@ FUNGI_GENERA = {
     'thelebolus', 'phenoliferia', 'goffeauzyma', 'guehomyces', 'tausonia',
     'naganishia', 'geomyces', 'cladosporium', 'penicillium', 'geotrichum',
     'pyricularia', 'emericella', 'mycosarcoma', 'dioszegia', 'sungouiella',
-    'friedmanniomyces', 'rachicladosporium', 'phaffia', 'debaryomyces'
+    'friedmanniomyces', 'rachicladosporium', 'phaffia', 'debaryomyces',
+    'aureobasidium', 'extremus', 'salinomyces'
 }
 
 class HierarchicalPsychroScan:
