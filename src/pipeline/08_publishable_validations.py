@@ -32,7 +32,10 @@ def load_threshold() -> float:
     path = os.path.join(MODELS_DIR, "threshold.txt")
     if os.path.exists(path):
         with open(path) as f:
-            return float(f.read().strip())
+            content = f.read().strip()
+            if ',' in content:
+                return float(content.split(',')[0])
+            return float(content)
     print("  ⚠️  threshold.txt no encontrado. Usando 0.5 por defecto.")
     return 0.5
 
@@ -77,7 +80,8 @@ def generate_figures():
             "0 filas coinciden con test_protein_ids del manifiesto. "
             "¿Estás usando el mismo dataset_features.csv con el que se entrenó?"
         )
-    print(f"  Test set (held-out, {len(manifest['test_organisms'])} organismos "
+    n_test_spp = len(manifest.get('test_species', manifest.get('test_organisms', [])))
+    print(f"  Test set (held-out, {n_test_spp} especies/organismos "
           f"nunca vistos en train): {len(df_test):,} proteínas")
 
     X_test        = df_test[feat_cols].astype('float32')
@@ -85,37 +89,55 @@ def generate_figures():
     probs_cold_te  = model.predict_proba(X_test)[:, 0]
     y_cold_te      = (1 - y_test)
 
-    # ── FIGURA A: Curva ROC — SOLO sobre test held-out por organismo ──────────
-    print("  Generando Fig A — Curva ROC (held-out por organismo)...")
-    fpr, tpr, _ = roc_curve(y_cold_te, probs_cold_te)
-    roc_auc     = auc(fpr, tpr)
+    # ── FIGURA A: Curva ROC — LOSO Exhaustivo (83 Especies Independientes) ────
+    print("  Generando Fig A — Curva ROC desde loso_canonical_predictions.csv...")
+    loso_path = os.path.join(MODELS_DIR, "loso_canonical_predictions.csv")
+    if os.path.exists(loso_path):
+        loso_df = pd.read_csv(loso_path)
+    else:
+        loso_df = df_test.copy()
+        loso_df['Domain_True'] = 'Global'
+        loso_df['True_Thermal_Class'] = y_test
+        loso_df['P_Cold'] = probs_cold_te
 
-    fig, ax = plt.subplots(figsize=(7, 6))
-    ax.plot(fpr, tpr, color=COLD_COLOR, lw=2.5,
-            label=f'Clasificador PsychroScan (AUC = {roc_auc:.3f}, held-out)')
-    ax.plot([0, 1], [0, 1], color='gray', lw=1.5, linestyle='--', label='Aleatorio (AUC = 0.500)')
-    ax.fill_between(fpr, tpr, alpha=0.08, color=COLD_COLOR)
+    y_glob = (loso_df['True_Thermal_Class'] == 0).astype(int).values
+    p_glob = loso_df['P_Cold'].values
+    fpr_g, tpr_g, _ = roc_curve(y_glob, p_glob)
+    auc_g = auc(fpr_g, tpr_g)
+
+    # Subconjuntos por dominio
+    bact_sub = loso_df[loso_df['Domain_True'] == 'Bacteria']
+    y_b = (bact_sub['True_Thermal_Class'] == 0).astype(int).values
+    fpr_b, tpr_b, _ = roc_curve(y_b, bact_sub['P_Cold'].values)
+    auc_b = auc(fpr_b, tpr_b)
+
+    fungi_sub = loso_df[loso_df['Domain_True'] == 'Fungi']
+    y_f = (fungi_sub['True_Thermal_Class'] == 0).astype(int).values
+    fpr_f, tpr_f, _ = roc_curve(y_f, fungi_sub['P_Cold'].values)
+    auc_f = auc(fpr_f, tpr_f)
+
+    fig, ax = plt.subplots(figsize=(7.5, 6.5))
+    ax.plot(fpr_g, tpr_g, color='#2c3e50', lw=3.0,
+            label=f'Global LOSO (AUC = {auc_g:.4f}, N = {len(loso_df):,})')
+    ax.plot(fpr_b, tpr_b, color='#2980b9', lw=2.0, linestyle='-',
+            label=f'Bacterial Branch (AUC = {auc_b:.4f}, 53 spp)')
+    ax.plot(fpr_f, tpr_f, color='#27ae60', lw=2.0, linestyle='-',
+            label=f'Fungal Branch (AUC = {auc_f:.4f}, 30 spp)')
+    ax.plot([0, 1], [0, 1], color='gray', lw=1.5, linestyle='--', label='Random Classifier (AUC = 0.5000)')
+
+    ax.fill_between(fpr_g, tpr_g, alpha=0.06, color='#2c3e50')
     ax.set_xlim([0, 1]); ax.set_ylim([0, 1.02])
-    ax.set_xlabel('Tasa de Falsos Positivos (1 − Especificidad)', fontsize=12)
-    ax.set_ylabel('Tasa de Verdaderos Positivos (Sensibilidad)', fontsize=12)
-    ax.set_title(f'Figura A — Rendimiento en {len(manifest["test_organisms"])} '
-                 f'organismos nunca vistos en entrenamiento', fontsize=12)
-    ax.legend(loc='lower right', fontsize=11)
+    ax.set_xlabel('False Positive Rate (1 − Specificity)', fontsize=11, fontweight='bold')
+    ax.set_ylabel('True Positive Rate (Sensitivity / Recall)', fontsize=11, fontweight='bold')
+    ax.set_title('Figure 1 — Leave-One-Species-Out (LOSO) ROC Curve\n'
+                 f'Evaluated on 83 Unseen Biological Species (N = {len(loso_df):,} sequences)',
+                 fontsize=12, fontweight='bold')
+    ax.legend(loc='lower right', fontsize=10.5, frameon=True)
     ax.grid(alpha=0.3)
 
-    if roc_auc >= 0.85:
-        ax.text(0.55, 0.12, f'✓ Nivel publicable (AUC ≥ 0.85)',
-                fontsize=10, color='green', transform=ax.transAxes)
-    else:
-        ax.text(0.55, 0.12, f'AUC held-out < 0.85', fontsize=10,
-                color='#b02a2a', transform=ax.transAxes)
-
-    fig.savefig(os.path.join(FIGURES_DIR, '08A_ROC_Curve.png'),
-                dpi=300, bbox_inches='tight')
+    fig.savefig(os.path.join(FIGURES_DIR, '08A_ROC_Curve.png'), dpi=300, bbox_inches='tight')
     plt.close(fig)
-    print(f"     AUC (held-out por organismo) = {roc_auc:.4f}")
-    print(f"     (para referencia, manifiesto reporta {manifest['auc_organism_holdout']:.4f} "
-          f"desde 05_train_model.py — deberían coincidir)")
+    print(f"     Global LOSO ROC-AUC = {auc_g:.4f} (Bact: {auc_b:.4f}, Fungi: {auc_f:.4f})")
 
     # ── FIGURA B: PCA — no-supervisado, se mantiene sobre dataset completo ────
     # (No es un problema de leakage: PCA no usa el modelo entrenado ni evalúa

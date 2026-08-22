@@ -58,17 +58,16 @@ To solve this challenge, PsychroScan v3.0 enforces **Strict Species-Disjoint Gov
 ```
 
 ### Taxonomic Verification and Dataset Partitions
-1. **Canonical Species Disambiguation (`Species_Group`):** Strains were mapped to binomial species identifiers (*Genus species*). Exactly **$0$ overlapping species** exist between Train and Test ($\text{Train} \cap \text{Test} = \emptyset$).
+1. **Canonical Species Disambiguation (`Species_Group`):** Strains were mapped to binomial species identifiers (*Genus species*). Exactly **$0$ overlapping species** exist across all training and evaluation partitions ($\text{Train} \cap \text{Test} = \emptyset$).
 2. **3-Tier Thermal Governance:**
-   * **Obligate Psychrophiles ($T_\text{opt} \le 15^\circ\text{C}$):** $580$ sequences ($18.6\%$).
-   * **Mesophiles ($T_\text{opt} > 25^\circ\text{C}$):** $2,537$ sequences ($81.4\%$, including *Shewanella oneidensis* and *Debaryomyces hansenii*).
-   * **Quarantined Psychrotrophs ($15^\circ\text{C} < T_\text{opt} \le 25^\circ\text{C}$):** $102$ sequences (e.g. *Pseudomonas antarctica*, *Photobacterium kishitanii*) quarantined from primary training to prevent boundary contamination and evaluated in isolated sensitivity benchmarks.
-3. **Partition Composition:**
-   * **Training Cohort:** 64 species ($2,297$ sequences: $424$ Cold, $1,873$ Warm).
-   * **Held-Out Evaluation Cohort:** 17 species ($820$ sequences: $156$ Cold, $664$ Warm; $509$ Bacteria, $311$ Fungi).
-4. **Out-of-Fold (OOF) Branch-Specific Threshold Calibration:** Calibrated via $F_2$-score on out-of-fold predictions:
-   * **Bacterial Branch:** $\tau_b = 0.2100$ ($\text{OOF } F_2 = 0.6304$).
-   * **Fungal Branch:** $\tau_f = 0.2600$ ($\text{OOF } F_2 = 0.4972$).
+   * **Obligate Psychrophiles ($T_\text{opt} \le 15^\circ\text{C}$):** $601$ sequences ($19.2\%$, $283$ Fungi, $318$ Bacteria).
+   * **Mesophiles ($T_\text{opt} > 25^\circ\text{C}$):** $2,537$ sequences ($80.8\%$, including *Shewanella oneidensis* and *Debaryomyces hansenii*).
+   * **Quarantined Psychrotrophs ($15^\circ\text{C} < T_\text{opt} \le 25^\circ\text{C}$):** $102$ sequences (e.g. *Pseudomonas antarctica*, *Photobacterium kishitanii*, *Phaffia rhodozyma*) quarantined from primary binary training and reserved for sensitivity benchmarks.
+3. **Evaluation Standard (Leave-One-Species-Out CV across 83 Folds):**
+   * Total curated dataset: **$83$ independent biological species** ($53$ Bacteria, $30$ Fungi; $N = 3,138$ sequences).
+4. **Out-of-Fold (OOF) Branch-Specific Threshold Calibration:** Calibrated via $F_2$-score:
+   * **Bacterial Branch:** $\tau_b = 0.2100$
+   * **Fungal Branch:** $\tau_f = 0.2600$
 
 ---
 
@@ -112,25 +111,25 @@ Key Methodological Conclusions from LOSO & Multi-Split Cross-Validation:
 | Zero-R (Majority Class) | Empirical Class Distribution | 0.5000 | — | — |
 
 ```
-End-to-End Confusion Matrix on Held-Out Test Cohort (n = 820):
+End-to-End Confusion Matrix on Full LOSO Dataset (N = 3,138 across 83 species):
 ────────────────────────────────────────────────────────────────────────
                       Predicted Cold (0)      Predicted Warm (1)
-  True Cold (0):              66                      90           [Sensitivity = 42.3%]
-  True Warm (1):              82                     582           [Specificity = 87.7%]
+  True Cold (0):             437                     164           [Sensitivity = 72.7%]
+  True Warm (1):             754                   1,783           [Specificity = 70.3%]
 ────────────────────────────────────────────────────────────────────────
 ```
 
-![Figure 1: ROC Curve on Held-Out Species](examples/figures/08A_ROC_Curve.png)  
-*Figure 1: Receiver Operating Characteristic (ROC) curve evaluated strictly on held-out species ($n = 820$ sequences from 17 unseen taxa, $\text{ROC-AUC} = 0.7081$).*
+![Figure 1: ROC Curve on Full LOSO Dataset](examples/figures/08A_ROC_Curve.png)  
+*Figure 1: Receiver Operating Characteristic (ROC) curve evaluated strictly under Leave-One-Species-Out cross-validation ($N = 3,138$ sequences across 83 unseen biological species; $\text{Global ROC-AUC} = 0.7918$).*
 
 ---
 
 ### 3.3. Biophysical Feature Importance and Structural Signatures
 
 ```
-Top Predictive Features by Domain-Specific Mutual Information & Tree Entropy:
-  • Bacterial Branch (431 features) : Length, DPC_AA, DPC_PG, DPC_LL, DPC_AI, DPC_IA, GRAVY
-  • Fungal Branch (434 features)    : AAC_N, DPC_LA, AAC_A, DPC_AA, AAC_K, N_Glyco_Density, Cys_Pair_Density
+Top Predictive Features by Domain-Specific Ensemble Importance (Gain / Gini):
+  • Bacterial Branch (431 features) : AAC_R, AAC_C, DPC_NL, AAC_G, AAC_K, DPC_KG, DPC_AG, Turn_Fraction
+  • Fungal Branch (434 features)    : AAC_N, DPC_SP, AAC_R, AAC_A, DPC_NI, DPC_KD, DPC_AA, DPC_AE
 ```
 
 ![Figure 3: Feature Importance](examples/figures/11E_Feature_Importance.png)  
@@ -180,7 +179,7 @@ To establish generalization across independent biochemical databases while stric
 ## 4. Discussion and Methodological Truth
 
 ### 4.1. The Truth About Species-Disjoint Generalization
-Eliminating strain-level leakage reveals that cross-species extrapolation in bacteria cannot rely on simple 1D dipeptide frequencies when evolutionary distance is large. Conversely, eukaryotic fungi retain strong predictive signal ($\text{ROC-AUC} = 0.7885$) driven by $N$-glycosylation surface density and polar loop composition.
+Eliminating strain-level leakage reveals that cross-species extrapolation in bacteria cannot rely solely on simple 1D dipeptide frequencies when evolutionary distance is large, motivating future protein language model embeddings (ESM-2). Conversely, eukaryotic fungi retain robust predictive signal ($\text{ROC-AUC} = \mathbf{0.7425}$ under clean LOSO across 30 independent species) driven by specific amino acid depletion/enrichment signatures (e.g. Asn, Arg, Ala) and loop flexibility.
 
 ---
 
