@@ -4,6 +4,28 @@ All notable changes, methodological corrections, and validation benchmarks of th
 
 ---
 
+## [v3.1.0-pre-inach] - 2026-08-22 — Bioprospecting Ranking Metrics, Paired Cluster Bootstrap, & External Benchmark Reconciliation
+
+### 🎯 Key Enhancements & Methodological Consolidations (Commit: `e480cc3`)
+* **Early Retrieval & Bioprospecting Ranking Metrics (LOSO):**
+  * Evaluated Precision@K, Recall@K, and Enrichment Factor across Global ($N=3,138$), Bacterial ($n=2,275$), and Fungal ($n=863$) domains.
+  * In the Global model, screening the **Top-100 ranked proteins yields $88.0\%$ originating from obligately psychrophilic species**, achieving a **$\mathbf{4.59\times}$ empirical enrichment** over random expectation ($\text{Base Rate} = 19.2\%$).
+* **Paired Cluster Bootstrap over $\Delta\text{AUC}$ ($B = 1,000$ Species-Level Resamplings):**
+  * Evaluated statistical improvement of PsychroScan v3.0 against a classical 1D biophysical baseline ($\text{Score} = -\text{GRAVY}$).
+  * Global $\Delta\text{AUC} = \mathbf{+0.3241}$ [$95\%\text{ CI: } +0.2316, +0.4121$], $p < 0.001$.
+  * Bacterial Branch $\Delta\text{AUC} = \mathbf{+0.3235}$ [$95\%\text{ CI: } +0.2038, +0.4490$], $p < 0.001$.
+  * Fungal Branch $\Delta\text{AUC} = \mathbf{+0.2431}$ [$95\%\text{ CI: } +0.1626, +0.3185$], $p < 0.001$.
+* **Biochemical Distance Dendrogram Stability Analysis (125 Reference Organisms):**
+  * Evaluated distance-matrix stability against protein subsampling ($N=50, 100, 250$ proteins per organism), yielding a Pearson correlation of $\mathbf{r = 0.8880}$.
+  * Explicitly documented baseline cophenetic correlation ($\mathbf{0.5430}$), characterizing the tree projection as providing a moderate representation of the underlying multidimensional distance matrix.
+* **Figure 5 Composite Reconciliation & *Cryomyces antarcticus* Canonical Alignment:**
+  * Aligned Table 3.6 and Figure 5 Panel A directly with `results/benchmark/hypergeometric_table.csv`.
+  * *Cryomyces antarcticus*: Top-15 extreme enrichment is $\mathbf{16.7\times}$ ($k=1/48, p=0.0549^\sim$), prioritizing cold-active Alpha-galactosidase (A0ABR0LQX1) at **Rank #8** of the entire 12,792-protein proteome. Top 5% decile yields $k=4/48$ ($p=0.218$).
+  * *Pseudoalteromonas haloplanktis* UP001152447: Top-15 $k=2/39$ ($12.5\times, p=0.0107^*$), Top 5% $k=5/39$ ($p=0.0433^*$).
+* **Nested CV Decision:** Formally benchmarked inner-loop computational cost (7.26 s/fold on M1 8GB); deferred Bayesian nested hyperparameter search to post-INACH roadmap while retaining zero-leakage LOSO as immutable standard.
+
+---
+
 ## [v3.0.0] - 2026-08-21 — Ground-Truth Leave-One-Species-Out (LOSO) Validation & Anti-Leakage Governance
 
 ### 🏛️ Methodological Milestone: Audited Leave-One-Species-Out (LOSO) Cross-Validation (83 Independent Species)
@@ -11,7 +33,7 @@ All notable changes, methodological corrections, and validation benchmarks of th
 * **Empirical Convergence Across Validation Paradigms:**
   * **Global LOSO ROC-AUC:** $\mathbf{0.7918}$ ($95\%\text{ CI: } [0.7248, 0.8469]$, $1,000$ species bootstrap replicates).
   * **Bacterial Branch:** $\mathbf{0.7810}$ ($95\%\text{ CI: } [0.7112, 0.8524]$, $53$ species, $n = 2,275$).
-  * **Fungal Branch:** $\mathbf{0.7425}$ ($95\%\text{ CI: } [0.6615, 0.8222]$, $29$ species, $n = 863$).
+  * **Fungal Branch:** $\mathbf{0.7425}$ ($95\%\text{ CI: } [0.6615, 0.8222]$, $30$ species, $n = 863$).
   * High stability and concordance between 5-Fold Stratified Species-Disjoint CV ($0.7379 \pm 0.0262$) and LOSO CV ($0.7425$).
 * **Canonical Record:** Full out-of-fold predictions exported to `results/models/loso_canonical_predictions.csv`.
 

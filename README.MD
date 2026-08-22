@@ -4,7 +4,7 @@
 [![Model Architecture](https://img.shields.io/badge/model-Hierarchical%20(Domain%20%2B%20Decoupled%20Ensembles)-orange.svg)]()
 [![Validation](https://img.shields.io/badge/Validation-Leave--One--Species--Out%20(Zero%20Leakage)-teal.svg)]()
 [![ROC-AUC (LOSO Global)](https://img.shields.io/badge/ROC--AUC%20(LOSO%20Global)-0.7918-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-Version%203.0.0--final-blue.svg)]()
+[![Status](https://img.shields.io/badge/Status-Version%203.1.0--pre--INACH-blue.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -13,15 +13,15 @@
 
 Cold-adapted (*psychrophilic*) enzymes possess profound industrial utility due to their elevated catalytic efficiency ($k_\text{cat}$) and reduced activation energy ($\Delta G^\ddagger$) at low and ambient temperatures ($0^\circ\text{C} - 20^\circ\text{C}$). These kinetic properties facilitate substantial energy conservation in industrial bioprocesses and enable mild thermal inactivation. Nonetheless, conventional bioprospecting methodologies relying on extreme-environment organism isolation, heterologous protein expression, and low-temperature kinetic characterization remain resource-intensive and experimentally protracted.
 
-**PsychroScan (v3.0.0)** is a sequence-derived, two-stage hierarchical machine learning framework formulated to facilitate the computational discovery and prioritization of psychrophilic industrial hydrolases directly from unannotated whole-genome sequence data. The architecture addresses the evolutionary divergence in cold-adaptation mechanisms between biological kingdoms:
+**PsychroScan (v3.1.0)** is a sequence-derived, two-stage hierarchical machine learning framework formulated to facilitate the computational discovery and prioritization of psychrophilic industrial hydrolases directly from unannotated whole-genome sequence data. The architecture addresses the evolutionary divergence in cold-adaptation mechanisms between biological kingdoms:
 * **Stage 1 (Domain Classification):** Classifies query sequences as Bacterial or Fungal with $>96\%$ ROC-AUC.
 * **Stage 2 (Decoupled Thermoadaptive Ensembles):** Routes sequences to domain-specialized multi-model ensembles (LightGBM + Random Forest + ExtraTrees) operating over domain-stratified feature representations ($431$ biophysical descriptors for Bacteria; $434$ descriptors including $N$-glycosylation and secretion proxies for Fungi), without requiring experimental 3D structures or multiple sequence alignments (MSAs).
 
-> ⚠️ **Notice:** Evaluated strictly under **Species-Disjoint GroupKFold** partitioning ($\text{Train} \cap \text{Test} = \emptyset$ at the biological species level) and audited against 3-tier physiological thermal definitions. See [CHANGELOG.md](CHANGELOG.md) for full version history.
+> ⚠️ **Notice:** Evaluated strictly under **Leave-One-Species-Out (LOSO)** cross-validation ($\text{Train} \cap \text{Test} = \emptyset$ at the biological species level) and audited against 3-tier physiological thermal definitions. See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
 ---
 
-## 2. Dataset Curation and Anti-Leakage Governance (v3.0.0 Standard)
+## 2. Dataset Curation and Anti-Leakage Governance (v3.1.0 Standard)
 
 A fundamental vulnerability in biological machine learning pertains to taxonomic and sequence redundancy leakage between training and evaluation partitions. When sibling strains of the same biological species populate both partitions, standard cross-validation yields artificially inflated performance metrics that fail to generalize to genuinely novel biological taxa.
 
@@ -138,7 +138,7 @@ $$\text{Enrichment@K} = \frac{\% \text{ Cold Enzymes Observed in Top-}K}{\% \tex
 | **Bacterial Branch** | 2,275 | 318 | $14.0\%$ | 0.7810 | 0.4857 | $86.0\%$ | $13.5\%$ | **$6.15\times$** | $71.0\%$ | $22.3\%$ | **$5.08\times$** |
 | **Fungal Branch** | 863 | 283 | $32.8\%$ | 0.7425 | 0.6399 | $84.0\%$ | $14.8\%$ | **$2.56\times$** | $78.0\%$ | $27.6\%$ | **$2.38\times$** |
 
-> **Bioprospecting Yield:** In an uncurated global library, screening the **Top-100 candidates yields $88\%$ true cold-active enzymes** ($\mathbf{4.59\times}$ enrichment over random baseline), accelerating experimental hit rates.
+> **Bioprospecting Yield:** Under the curated species-disjoint LOSO benchmark, **$88\%$ of the Top-100 ranked proteins originated from obligately psychrophilic species**, corresponding to **$4.59\times$ enrichment** over the empirical baseline.
 
 ---
 
