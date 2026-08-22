@@ -74,39 +74,39 @@ To solve this challenge, PsychroScan v3.0 enforces **Strict Species-Disjoint Gov
 
 ## 3. Results (Ground-Truth Species-Disjoint Evaluation)
 
-### 3.1. Primary Benchmark: Leave-One-Species-Out (LOSO) Cross-Validation (81 Independent Species)
+### 3.1. Primary Benchmark: Leave-One-Species-Out (LOSO) Cross-Validation (83 Independent Species)
 
-All metrics are derived directly from the single-source canonical record [`results/models/loso_canonical_predictions.csv`](results/models/loso_canonical_predictions.csv) evaluated iteratively across all $81$ biological species left out of training:
+All metrics are derived directly from the single-source canonical record [`results/models/loso_canonical_predictions.csv`](results/models/loso_canonical_predictions.csv) evaluated iteratively across all $83$ biological species left out of training:
 
 | Taxonomic Domain | Evaluated Sequences ($n$) | Independent Species ($k$) | Class Distribution | Intra-Domain ROC-AUC (LOSO) | 95% Confidence Interval (Species-Level Bootstrap) | 5-Fold Species-Disjoint CV ($\text{Mean} \pm \text{SD}$) |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|
-| **Hongos (Fungi)** | **862** ($27.7\%$) | **29** species | $282$ Cold / $580$ Warm | **$\mathbf{0.7512}$** | **$\mathbf{[0.6740, 0.8238]}$** | **$0.7379 \pm 0.0262$** |
-| **Bacterias** | **2,255** ($72.3\%$) | **52** species | $298$ Cold / $1,957$ Warm | **$\mathbf{0.7656}$** | **$\mathbf{[0.6841, 0.8522]}$** | **$0.8068 \pm 0.0806$** |
-| **Global Combinado** | **3,117** | **81** species | $580$ Cold / $2,537$ Warm | **$\mathbf{0.7882}$** | **$\mathbf{[0.7203, 0.8515]}$** | **$0.7968 \pm 0.0592$** |
+| **Hongos (Fungi)** | **863** ($27.5\%$) | **29** species | $283$ Cold / $580$ Warm | **$\mathbf{0.7425}$** | **$\mathbf{[0.6615, 0.8222]}$** | **$0.7379 \pm 0.0262$** |
+| **Bacterias** | **2,275** ($72.5\%$) | **53** species | $318$ Cold / $1,957$ Warm | **$\mathbf{0.7810}$** | **$\mathbf{[0.7112, 0.8524]}$** | **$0.8068 \pm 0.0806$** |
+| **Global Combinado** | **3,138** | **83** species | $601$ Cold / $2,537$ Warm | **$\mathbf{0.7918}$** | **$\mathbf{[0.7248, 0.8469]}$** | **$0.7968 \pm 0.0592$** |
 
 ```
 Key Methodological Conclusions from LOSO & Multi-Split Cross-Validation:
 ───────────────────────────────────────────────────────────────────────────────────
-1. Convergence in Fungal Discrimination: Across both Leave-One-Species-Out (0.7512) 
+1. Convergence in Fungal Discrimination: Across both Leave-One-Species-Out (0.7425) 
    and 5-Fold Species-Disjoint CV (0.7379 ± 0.0262), the fungal branch demonstrates 
    statistically robust, reproducible thermal discrimination across all 29 fungal species.
-2. Stability in Bacterial Extrapolation: Evaluating all 52 bacterial species via LOSO 
-   yields a solid ROC-AUC of 0.7656 (95% CI: [0.6841, 0.8522]). Direct inspection reveals 
+2. Stability in Bacterial Extrapolation: Evaluating all 53 bacterial species via LOSO 
+   yields a solid ROC-AUC of 0.7810 (95% CI: [0.7112, 0.8524]). Direct inspection reveals 
    that specific taxa with atypical amino acid compositions (e.g. Arthrobacter psychrolactophilus, 
    Mean P(Cold) = 0.1106) present zero-shot generalization challenges that justify 
    incorporating protein language model embeddings (ESM-2).
-3. Zero Taxonomic Leakage Standard: All 81 folds strictly guarantee Train ∩ Test = ∅ 
+3. Zero Taxonomic Leakage Standard: All 83 folds strictly guarantee Train ∩ Test = ∅ 
    at the biological species level, setting an uncompromised evaluation standard for the field.
 ───────────────────────────────────────────────────────────────────────────────────
 ```
 
 ---
 
-### 3.2. Baseline Comparison on Full Zero-Leakage Dataset ($N = 3,117$)
+### 3.2. Baseline Comparison on Full Zero-Leakage Dataset ($N = 3,138$)
 
 | Model Architecture | Partitioning Strategy | ROC-AUC (Pooled / CV) | 95% Bootstrap CI | Optimal $\tau$ |
 |:---|:---|:---:|:---:|:---:|
-| **PsychroScan v3.0 (Hierarchical)** | **Leave-One-Species-Out (81 Folds)** | **0.7882** | **[0.7203, 0.8515]** | $\tau_b=0.21, \tau_f=0.26$ |
+| **PsychroScan v3.0 (Hierarchical)** | **Leave-One-Species-Out (83 Folds)** | **0.7918** | **[0.7248, 0.8469]** | $\tau_b=0.21, \tau_f=0.26$ |
 | PsychroScan v3.0 (Hierarchical) | 5-Fold Species-Disjoint CV | 0.7968 | $[0.7376, 0.8560]$ | $\tau_b=0.21, \tau_f=0.26$ |
 | Homology Baseline (BLASTp) | Alignment to Training Database | 0.7047 | $[0.6512, 0.7582]$ | $E \le 10^{-3}$ |
 | Zero-R (Majority Class) | Empirical Class Distribution | 0.5000 | — | — |
