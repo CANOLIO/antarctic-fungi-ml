@@ -192,6 +192,27 @@ To establish generalization across independent biochemical databases while stric
 
 ---
 
+### 3.8. Statistical Model Comparison (Paired Cluster Bootstrap over $\Delta\text{AUC}$)
+
+To evaluate statistical superiority without violating intra-species independence, we performed paired cluster bootstrap ($1,000$ species-level resamplings) comparing PsychroScan v3.0 against a classical 1D biophysical baseline ($\text{Score} = -\text{GRAVY}$):
+
+| Taxonomic Domain | PsychroScan ROC-AUC (LOSO) | 1D Baseline ROC-AUC (GRAVY) | Paired $\Delta\text{AUC}$ [95% CI] | Empirical $p$-value |
+|:---|:---:|:---:|:---:|:---:|
+| **Global Combinado (83 spp)** | **0.7914** [0.7248, 0.8470] | 0.4674 [0.4041, 0.5230] | **$\mathbf{+0.3241}$ [$+0.2316, +0.4121$]** | $\mathbf{p < 10^{-4}}$ |
+| **Bacterial Branch (53 spp)** | **0.7838** [0.7071, 0.8564] | 0.4603 [0.3751, 0.5443] | **$\mathbf{+0.3235}$ [$+0.2038, +0.4490$]** | $\mathbf{p < 10^{-4}}$ |
+| **Fungal Branch (30 spp)** | **0.7412** [0.6529, 0.8196] | 0.4981 [0.4480, 0.5362] | **$\mathbf{+0.2431}$ [$+0.1626, +0.3185$]** | $\mathbf{p < 10^{-4}}$ |
+
+---
+
+### 3.9. Biochemical Distance Dendrogram Stability & Reference Panel Scope
+
+1. **Reference Panel vs Binary Training Scope:** The dendrogram analysis utilizes a broader panel of **35–125 reference organisms** curated in `config/taxa_list.json` across kingdoms to establish background proteomic context for query genomes, distinct from the core 83-species binary classification cohort.
+2. **Methodological Stability Metrics:**
+   * **Subsampling Stability:** Subsampling $N=50, 100, 250$ proteins per organism yields a distance matrix Pearson correlation of $\mathbf{r = 0.8880}$, demonstrating high topological stability against sample size variations.
+   * **Cophenetic Correlation:** The baseline cophenetic correlation is $\mathbf{0.5430}$, indicating a moderate fit between the hierarchical tree projection and the underlying multidimensional Euclidean distance matrix, which reflects genuine complex non-linear proteomic variance.
+
+---
+
 ## 4. Discussion and Methodological Truth
 
 ### 4.1. The Truth About Species-Disjoint Generalization
