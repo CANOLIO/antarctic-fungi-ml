@@ -80,7 +80,7 @@ All metrics are derived directly from the single-source canonical record [`resul
 
 | Taxonomic Domain | Evaluated Sequences ($n$) | Independent Species ($k$) | Class Distribution | Intra-Domain ROC-AUC (LOSO) | 95% Confidence Interval (Species-Level Bootstrap) | 5-Fold Species-Disjoint CV ($\text{Mean} \pm \text{SD}$) |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|
-| **Hongos (Fungi)** | **863** ($27.5\%$) | **29** species | $283$ Cold / $580$ Warm | **$\mathbf{0.7425}$** | **$\mathbf{[0.6615, 0.8222]}$** | **$0.7379 \pm 0.0262$** |
+| **Hongos (Fungi)** | **863** ($27.5\%$) | **30** species | $283$ Cold / $580$ Warm | **$\mathbf{0.7425}$** | **$\mathbf{[0.6615, 0.8222]}$** | **$0.7379 \pm 0.0262$** |
 | **Bacterias** | **2,275** ($72.5\%$) | **53** species | $318$ Cold / $1,957$ Warm | **$\mathbf{0.7810}$** | **$\mathbf{[0.7112, 0.8524]}$** | **$0.8068 \pm 0.0806$** |
 | **Global Combinado** | **3,138** | **83** species | $601$ Cold / $2,537$ Warm | **$\mathbf{0.7918}$** | **$\mathbf{[0.7248, 0.8469]}$** | **$0.7968 \pm 0.0592$** |
 
@@ -89,7 +89,7 @@ Key Methodological Conclusions from LOSO & Multi-Split Cross-Validation:
 ───────────────────────────────────────────────────────────────────────────────────
 1. Convergence in Fungal Discrimination: Across both Leave-One-Species-Out (0.7425) 
    and 5-Fold Species-Disjoint CV (0.7379 ± 0.0262), the fungal branch demonstrates 
-   statistically robust, reproducible thermal discrimination across all 29 fungal species.
+   statistically robust, reproducible thermal discrimination across all 30 fungal species.
 2. Stability in Bacterial Extrapolation: Evaluating all 53 bacterial species via LOSO 
    yields a solid ROC-AUC of 0.7810 (95% CI: [0.7112, 0.8524]). Direct inspection reveals 
    that specific taxa with atypical amino acid compositions (e.g. Arthrobacter psychrolactophilus, 

@@ -32,10 +32,14 @@ All notable changes, methodological corrections, and validation benchmarks of th
     * *Shewanella oneidensis* MR-1 ($28$ seqs, $T_\text{opt}=30^\circ\text{C}$, moved to Warm Class 1).
   * **Net Curated Cold Bacteria in Primary Training/LOSO Pool:** $426 - 80 - 28 = \mathbf{318}$ sequences ($19$ species, exactly matching the 3-tier thermal audit).
 
-#### 2. Fungal Reconciliation ($284 \rightarrow 283$)
-* **Raw Fungi Cold:** $284$ sequences.
-* **Quarantined Fungal Psychrotroph:** *Phaffia rhodozyma* ($1$ seq, $T_\text{opt}=20^\circ\text{C}$) moved to sensitivity tier.
-* **Net Curated Cold Fungi:** $284 - 1 = \mathbf{283}$ sequences ($13$ obligate psychrophilic fungal species, matching the 3-tier audit).
+#### 2. Fungal Reconciliation ($283$ Sequences, $12$ Cold / $18$ Warm Species = $30$ Total)
+* **Cold Fungi Pool ($n = 283$ seqs across $12$ obligate psychrophilic species):**
+  * *Friedmanniomyces endolithicus* ($67$), *Rachicladosporium antarcticum* ($41$), *Pseudogymnoascus verrucosus* ($33$), *Friedmanniomyces simplex* ($27$), *Extremus antarcticus* ($22$), *Aureobasidium subglaciale* ($21$), *Pseudogymnoascus destructans* ($19$), *Salinomyces thailandicus* ($18$), *Cryomyces minteri* ($17$), *Leucosporidium creatinivorum* ($14$), *Geomyces pannorum* ($3$), *Glaciozyma antarctica* ($1$).
+  * Total: Exactly $283$ sequences across $12$ obligate psychrophilic species (matches the 3-tier physiological audit).
+* **Warm Fungi Pool ($n = 580$ seqs across $18$ mesophilic species):**
+  * *Aspergillus fumigatus* ($81$), *Aspergillus niger* ($65$), *Saccharomyces cerevisiae* ($57$), *Candida albicans* ($50$), *Yarrowia lipolytica* ($47$), *Pyricularia oryzae* ($32$), *Geotrichum candidum* ($31$), *Schizosaccharomyces pombe* ($29$), *Trichoderma reesei* ($27$), *Botrytis cinerea* ($24$), *Aspergillus nidulans* ($23$), *Neurospora crassa* ($23$), *Debaryomyces hansenii* ($21$), *Candida tropicalis* ($20$), *Penicillium roqueforti* ($17$), *Ustilago maydis* ($17$), *Rhodotorula mucilaginosa* ($15$), *Magnaporthe oryzae* ($1$).
+* **Total Fungal Taxa:** $12 + 18 = \mathbf{30}$ biological species ($863$ sequences).
+* **Total Dataset Taxa:** $53\text{ Bacteria} + 30\text{ Fungi} = \mathbf{83}$ biological species ($3,138$ sequences).
 
 #### 3. Investigation of the Previous 0.5376 Bacterial Metric
 * **Direct Inspection of Difficult Psychrophiles:**
@@ -43,8 +47,9 @@ All notable changes, methodological corrections, and validation benchmarks of th
   * *Marinomonas arctica* ($13$ seqs, Cold): Mean $P(\text{Cold}) = \mathbf{0.2295}$ ($7/13$ detected).
   * *Psychroflexus torquis* ($12$ seqs, Cold): Mean $P(\text{Cold}) = \mathbf{0.3336}$ ($8/12$ detected).
 * **Gap Analysis ($0.5376 \rightarrow 0.6578 \rightarrow 0.7810$):**
-  * When evaluating the 11 held-out species under clean LOSO, their combined ROC-AUC is **$0.6578$** (accounting for $\sim 60\%$ of the drop from difficult species composition).
-  * The remaining gap ($0.5376 \rightarrow 0.6578$) is attributed to cross-domain threshold interaction and PTM proxy dilution in earlier monolithic feature selection runs, now fully decoupled.
+  * Evaluating the original 11 held-out species under clean LOSO yields an ROC-AUC of **$0.6578$**, confirming that species-specific compositional ambiguity accounts for a substantial portion of the lower performance in that specific subset.
+  * The transition from $0.5376$ to $0.6578$ coincides temporally with multiple concurrent pipeline refinements (including feature decoupling, threshold recalibration, and correction of the *Oleispira/Pseudomonas* regex collision) without isolating the individual effect of each factor.
+  * Expanding evaluation to all 53 bacterial species across the full dataset via LOSO establishes the comprehensive, unbiased baseline at **$0.7810$** ($95\%\text{ CI: } [0.7112, 0.8524]$).
 
 ---
 
