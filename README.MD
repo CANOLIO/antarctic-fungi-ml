@@ -2,9 +2,9 @@
 
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
 [![Model Architecture](https://img.shields.io/badge/model-Hierarchical%20(Domain%20%2B%20Decoupled%20Ensembles)-orange.svg)]()
-[![Validation](https://img.shields.io/badge/Validation-Strictly%20Species--Disjoint%20(Zero%20Leakage)-teal.svg)]()
-[![ROC-AUC (Held-Out Fungi)](https://img.shields.io/badge/ROC--AUC%20(Fungi)-0.7885%20(Species--Disjoint)-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-Version%203.0.0-blue.svg)]()
+[![Validation](https://img.shields.io/badge/Validation-Leave--One--Species--Out%20(Zero%20Leakage)-teal.svg)]()
+[![ROC-AUC (LOSO Global)](https://img.shields.io/badge/ROC--AUC%20(LOSO%20Global)-0.7918-green.svg)]()
+[![Status](https://img.shields.io/badge/Status-Version%203.0.0--final-blue.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -134,11 +134,20 @@ Top Predictive Features by Domain-Specific Mutual Information & Tree Entropy:
 ```
 
 ![Figure 3: Feature Importance](examples/figures/11E_Feature_Importance.png)  
-*Figure 3: Top predictive biophysical features ranked by information gain and entropy.*
+*Figure 3: Top predictive biophysical features ranked by ensemble importance across Bacterial (Panel A) and Fungal (Panel B) architectures.*
 
 ---
 
-### 3.4. Retrospective Whole-Proteome Benchmarks
+### 3.4. Proteomic Feature Space and Dimensionality Analysis
+
+Principal Component Analysis (PCA) across the 434-dimensional descriptor space demonstrates substantial linear overlap in the primary principal components, underscoring the non-linear classification challenge that requires ensemble tree modeling:
+
+![Figure 2: PCA Space and Amino Acid Signatures](examples/figures/08B_PCA_Space.png)  
+*Figure 2: Unsupervised Principal Component Analysis (PCA) of the curated dataset across biophysical descriptors.*
+
+---
+
+### 3.5. Retrospective Whole-Proteome Benchmarks
 
 The framework was evaluated on complete proteomes from external, quarantined taxa:
 
@@ -156,7 +165,7 @@ The framework was evaluated on complete proteomes from external, quarantined tax
 
 ---
 
-### 3.5. External Sequence Homology and CD-HIT Redundancy Audit (BRENDA Repository)
+### 3.6. External Sequence Homology and CD-HIT Redundancy Audit (BRENDA Repository)
 
 To establish generalization across independent biochemical databases while strictly ruling out sequence identity inflation, we audited **943 external cold-active enzymes** from BRENDA/UniProt:
 
