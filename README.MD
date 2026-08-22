@@ -124,7 +124,23 @@ End-to-End Confusion Matrix on Full LOSO Dataset (N = 3,138 across 83 species):
 
 ---
 
-### 3.3. Biophysical Feature Importance and Structural Signatures
+### 3.3. Bioprospecting and Early Retrieval Ranking Metrics (LOSO)
+
+For industrial bioprospecting pipelines, early retrieval metrics (Precision@K and Enrichment Factor) directly quantify screening efficiency prior to laboratory validation:
+
+$$\text{Enrichment@K} = \frac{\% \text{ Cold Enzymes Observed in Top-}K}{\% \text{ Cold Enzymes Expected by Random Baseline}}$$
+
+| Taxonomic Domain | Evaluated ($N$) | Positives ($N_\text{cold}$) | Empirical Base Rate | ROC-AUC | PR-AUC | Precision@50 | Recall@50 | Enrichment@50 | Precision@100 | Recall@100 | Enrichment@100 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Global Combinado** | **3,138** | **601** | **$19.2\%$** | **0.7918** | **0.5572** | **$90.0\%$** | **$7.5\%$** | **$\mathbf{4.70\times}$** | **$88.0\%$** | **$14.6\%$** | **$\mathbf{4.59\times}$** |
+| **Bacterial Branch** | 2,275 | 318 | $14.0\%$ | 0.7810 | 0.4857 | $86.0\%$ | $13.5\%$ | **$6.15\times$** | $71.0\%$ | $22.3\%$ | **$5.08\times$** |
+| **Fungal Branch** | 863 | 283 | $32.8\%$ | 0.7425 | 0.6399 | $84.0\%$ | $14.8\%$ | **$2.56\times$** | $78.0\%$ | $27.6\%$ | **$2.38\times$** |
+
+> **Bioprospecting Yield:** In an uncurated global library, screening the **Top-100 candidates yields $88\%$ true cold-active enzymes** ($\mathbf{4.59\times}$ enrichment over random baseline), accelerating experimental hit rates.
+
+---
+
+### 3.4. Biophysical Feature Importance and Structural Signatures
 
 ```
 Top Predictive Features by Domain-Specific Ensemble Importance (Gain / Gini):
@@ -137,7 +153,7 @@ Top Predictive Features by Domain-Specific Ensemble Importance (Gain / Gini):
 
 ---
 
-### 3.4. Proteomic Feature Space and Dimensionality Analysis
+### 3.5. Proteomic Feature Space and Dimensionality Analysis
 
 Principal Component Analysis (PCA) across the 434-dimensional descriptor space demonstrates substantial linear overlap in the primary principal components, underscoring the non-linear classification challenge that requires ensemble tree modeling:
 
@@ -146,7 +162,7 @@ Principal Component Analysis (PCA) across the 434-dimensional descriptor space d
 
 ---
 
-### 3.5. Retrospective Whole-Proteome Benchmarks
+### 3.6. Retrospective Whole-Proteome Benchmarks
 
 The framework was evaluated on complete proteomes from external, quarantined taxa:
 
@@ -164,7 +180,7 @@ The framework was evaluated on complete proteomes from external, quarantined tax
 
 ---
 
-### 3.6. External Sequence Homology and CD-HIT Redundancy Audit (BRENDA Repository)
+### 3.7. External Sequence Homology and CD-HIT Redundancy Audit (BRENDA Repository)
 
 To establish generalization across independent biochemical databases while strictly ruling out sequence identity inflation, we audited **943 external cold-active enzymes** from BRENDA/UniProt:
 

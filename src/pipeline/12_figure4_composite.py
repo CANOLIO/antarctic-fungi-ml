@@ -23,11 +23,12 @@ def build_figure():
     ax_table = fig.add_subplot(gs[0])
     ax_table.axis('off')
 
-    col_labels = ['Organism', 'N', 'K', 'Top 15', 'Fold', 'p (Fisher)', 'PPI']
+    col_labels = ['Organism', 'N', 'K', 'Top 15', 'Fold', 'p (Fisher)', 'Top 5%', 'p (5%)', 'PPI']
     cell_data  = [
-        ['P. chrysogenum (mesophile)',         '12,562', '93', '0', '0.0x', '1.00',    '45.1'],
-        ['P. haloplanktis TAC125 (psychro.)',  '3,484',  '43', '1', '5.3x', '0.17',    '63.3+'],
-        ['P. haloplanktis OX:228 (psychro.)',  '3,650',  '39', '2', '12.5x','0.011*',  '63.3+'],
+        ['P. chrysogenum (mesophile)',         '12,562', '93', '0', '0.0x',  '1.00',   '0', '1.00',     '24.8'],
+        ['C. antarcticus (black yeast)',       '12,792', '48', '1', '16.7x', '0.055',  '4', '0.218',    '30.3'],
+        ['P. haloplanktis TAC125 (psychro.)',  '3,484',  '43', '1', '5.3x',  '0.170',  '2', '0.645',    '63.3+'],
+        ['P. haloplanktis UP001152447 (psych.)','3,650', '39', '2', '12.5x', '0.011*', '5', '0.0433*', '63.3+'],
     ]
 
     tbl = ax_table.table(
@@ -35,38 +36,38 @@ def build_figure():
         colLabels=col_labels,
         cellLoc='center',
         loc='center',
-        colWidths=[0.32, 0.10, 0.07, 0.09, 0.09, 0.12, 0.09],
+        colWidths=[0.26, 0.09, 0.06, 0.09, 0.08, 0.11, 0.09, 0.11, 0.09],
     )
     tbl.auto_set_font_size(False)
-    tbl.set_fontsize(9)
-    tbl.scale(1, 3.5)
+    tbl.set_fontsize(8.5)
+    tbl.scale(1, 2.8)
 
     # Header style
     for col in range(len(col_labels)):
         cell = tbl[0, col]
         cell.set_facecolor(HEADER_BG)
-        cell.set_text_props(color='white', fontweight='bold', fontsize=9.5)
+        cell.set_text_props(color='white', fontweight='bold', fontsize=8.5)
         cell.set_edgecolor('white')
 
     # Row styles
-    row_bg    = ['#fdf2f8', '#eaf4fb', '#eaf4fb']
-    row_color = [WARM_COLOR, COLD_COLOR, COLD_COLOR]
-    for row in range(1, 4):
+    row_bg    = ['#fdf2f8', '#eaf4fb', '#eaf4fb', '#eaf4fb']
+    row_color = [WARM_COLOR, COLD_COLOR, COLD_COLOR, COLD_COLOR]
+    for row in range(1, 5):
         for col in range(len(col_labels)):
             cell = tbl[row, col]
             cell.set_facecolor(row_bg[row - 1])
             cell.set_edgecolor('#dee2e6')
             if col == 0:
                 cell.set_text_props(color=row_color[row - 1], fontweight='bold')
-            if col == 5 and row == 3:
+            if row == 4 and (col in (5, 7)):
                 cell.set_text_props(color=SIG_COLOR, fontweight='bold')
 
     ax_table.set_title('Retrospective Benchmark — Hydrolytic Enzyme Recovery',
                        fontsize=11, fontweight='bold', color='#2c3e50', pad=14)
     ax_table.text(
         0.01, 0.02,
-        '* p < 0.05 (Fisher exact, one-tailed)   + PPI: >50 psychrophile, 30-50 psychrotrophic, <30 mesophile\n'
-        'N = proteome size;  K = annotated hydrolytic enzymes;  Top 15 = hydrolytic enzymes in top-15 predictions',
+        '* p < 0.05 (Hypergeometric / Fisher exact, one-tailed)   + PPI: >50 psychrophile, 30-50 psychrotolerant, <30 mesophile\n'
+        'N = proteome size;  K = annotated hydrolytic enzymes;  Top 15 / Top 5% = hydrolases recovered in top-ranked candidates',
         transform=ax_table.transAxes,
         fontsize=7.5, color='#5d6d7e', va='bottom', linespacing=1.6)
 
